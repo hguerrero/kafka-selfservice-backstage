@@ -1,0 +1,17 @@
+---
+# Namespaces for the platform.
+#   kong  - Kong Operator, Event Gateway control/data plane, per-tenant virtual clusters
+#   kafka - Strimzi operator + the backing "northwind" Kafka cluster
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kong
+  labels:
+    app.kubernetes.io/part-of: kafka-selfservice-platform
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kafka
+  labels:
+    app.kubernetes.io/part-of: kafka-selfservice-platform

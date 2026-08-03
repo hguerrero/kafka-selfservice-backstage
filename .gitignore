@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+# local certs / secrets
+examples/kafka-client/ca.crt
+examples/kafka-client/*.jks
+*.key
+*.crt
+*.pem
+tls.*

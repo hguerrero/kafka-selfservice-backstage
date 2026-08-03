@@ -1,0 +1,19 @@
+---
+# Backstage Component for the consuming application, wired to the AsyncAPI it uses.
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.appName }}
+  description: ${{ values.description }}
+  annotations:
+    backstage.io/managed-by-location: url:./catalog-info.yaml
+  labels:
+    business-unit: ${{ values.businessUnit }}
+    auth-mode: ${{ values.authMode }}
+spec:
+  type: service
+  lifecycle: production
+  owner: ${{ values.owner }}
+  system: ${{ values.businessUnit }}-streams
+  consumesApis:
+    - ${{ values.apiRef }}

@@ -1,0 +1,108 @@
+asyncapi: 3.0.0
+info:
+  title: Wealth Management LA Event Streams
+  version: 1.0.0
+  description: |
+    Event streams owned by the Wealth Management LA business unit at Northwind
+    Financial, exposed through Kong Event Gateway. The `WEALTH_LA.` broker prefix
+    is hidden; logical channel names below are what clients use.
+
+    Access is granted per application via the **Consume Kafka Topics** self-service
+    template. Note that `infosec.security.fraud.risk-scores.v3` is a restricted
+    stream and access requests are routed for approval.
+  contact:
+    name: Wealth Management LA Platform Team
+    email: wealth-la-platform@northwind.example
+  tags:
+    - name: business-unit:wealth-management-la
+    - name: domain:wealth
+servers:
+  event-gateway:
+    host: "bootstrap.{application}.127-0-0-1.sslip.io:9092"
+    protocol: kafka-secure
+    description: Kong Event Gateway virtual-cluster bootstrap for your application.
+    variables:
+      application:
+        description: Your provisioned application (virtual cluster) name.
+        default: your-app
+    security:
+      - $ref: "#/components/securitySchemes/scram"
+channels:
+  advisor.daily-client-activity.v1:
+    address: advisor.daily-client-activity.v1
+    description: Daily advisor/client interaction activity events.
+    messages:
+      activity:
+        $ref: "#/components/messages/AdvisorActivity"
+    bindings:
+      kafka:
+        topic: advisor.daily-client-activity.v1
+  clients.sentiment-signals.v1:
+    address: clients.sentiment-signals.v1
+    description: Client sentiment and signal events (24 hour retention).
+    messages:
+      sentiment:
+        $ref: "#/components/messages/SentimentSignal"
+    bindings:
+      kafka:
+        topic: clients.sentiment-signals.v1
+  infosec.security.fraud.risk-scores.v3:
+    address: infosec.security.fraud.risk-scores.v3
+    description: >
+      RESTRICTED. Fraud risk scoring events (30 day compliance retention).
+      Access requires approval by the Wealth Management LA data owner.
+    messages:
+      riskScore:
+        $ref: "#/components/messages/FraudRiskScore"
+    bindings:
+      kafka:
+        topic: infosec.security.fraud.risk-scores.v3
+operations:
+  receiveAdvisorActivity:
+    action: receive
+    channel:
+      $ref: "#/channels/advisor.daily-client-activity.v1"
+  receiveSentiment:
+    action: receive
+    channel:
+      $ref: "#/channels/clients.sentiment-signals.v1"
+  receiveRiskScore:
+    action: receive
+    channel:
+      $ref: "#/channels/infosec.security.fraud.risk-scores.v3"
+components:
+  securitySchemes:
+    scram:
+      type: scramSha256
+      description: SASL/SCRAM-SHA-256 over TLS. Credentials are issued per application.
+  messages:
+    AdvisorActivity:
+      name: AdvisorActivity
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          advisorId: { type: string }
+          clientId: { type: string }
+          interactionType: { type: string }
+          occurredAt: { type: string, format: date-time }
+    SentimentSignal:
+      name: SentimentSignal
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          clientId: { type: string }
+          score: { type: number }
+          signal: { type: string }
+          ts: { type: string, format: date-time }
+    FraudRiskScore:
+      name: FraudRiskScore
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          subjectId: { type: string }
+          riskScore: { type: number }
+          model: { type: string }
+          scoredAt: { type: string, format: date-time }

@@ -1,0 +1,40 @@
+---
+# EventGatewayVirtualClusterPolicy (ACLs) - fraud-analytics
+# WORKED EXAMPLE. Grants read on two Wealth Management LA topics. Editing this file
+# (or re-running "Add Topics to Application") is the entire "grant more access" flow.
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayVirtualClusterPolicy
+metadata:
+  name: fraud-analytics-acl
+  namespace: kong
+  labels:
+    app.kubernetes.io/managed-by: backstage
+    business-unit: wealth-management-la
+spec:
+  eventGatewayVirtualClusterRef:
+    type: namespacedRef
+    namespacedRef:
+      name: fraud-analytics
+  apiSpec:
+    type: acls
+    acls:
+      name: fraud-analytics-acl
+      description: Read access for fraud-analytics to selected wealth-management-la topics.
+      condition: "context.auth.principal.name == 'fraud-analytics'"
+      config:
+        rules:
+          - action: allow
+            resource_type: topic
+            operations:
+              - name: describe
+              - name: read
+            resource_names:
+              - match: "clients.sentiment-signals.v1"
+              - match: "infosec.security.fraud.risk-scores.v3"
+          - action: allow
+            resource_type: group
+            operations:
+              - name: describe
+              - name: read
+            resource_names:
+              - match: "fraud-analytics.*"

@@ -1,0 +1,87 @@
+---
+# EventGatewayListener
+# Opens port 9092 on the Event Gateway data plane for Kafka client connections.
+# TLS termination + SNI routing are attached via the listener policies below.
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayListener
+metadata:
+  name: sni-listener
+  namespace: kong
+spec:
+  apiSpec:
+    name: sni-listener
+    addresses:
+      - 0.0.0.0
+    ports:
+      - "9092"
+  gatewayRef:
+    type: namespacedRef
+    namespacedRef:
+      name: cp-event-gateway
+---
+# EventGatewayListenerPolicy - TLS Server
+# Terminates TLS on the listener using the wildcard cert in keg-tls-secret.
+# Plaintext is rejected, so SASL/SCRAM always runs over TLS (SASL_SSL).
+#
+# Create the secret via cert-manager (see platform/networking) or manually:
+#   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+#     -keyout tls.key -out tls.crt -subj "/CN=127-0-0-1.sslip.io" \
+#     -addext "subjectAltName=DNS:*.127-0-0-1.sslip.io"
+#   kubectl create secret tls keg-tls-secret --cert=tls.crt --key=tls.key -n kong
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayListenerPolicy
+metadata:
+  name: sni-tls-server
+  namespace: kong
+spec:
+  eventGatewayListenerRef:
+    type: namespacedRef
+    namespacedRef:
+      name: sni-listener
+  apiSpec:
+    type: tlsServer
+    tlsServer:
+      name: sni-tls-server
+      enabled: Enabled
+      config:
+        allowPlaintext: Disabled
+        versions:
+          min: TLSv1.2
+          max: TLSv1.3
+        certificates:
+          - certificate:
+              type: secretRef
+              secretRef:
+                name: keg-tls-secret
+            key:
+              type: secretRef
+              secretRef:
+                name: keg-tls-secret
+---
+# EventGatewayListenerPolicy - SNI Forward
+# Routes each incoming connection to a virtual cluster by SNI hostname suffix.
+# With per_cluster_suffix, a client connecting to
+#   bootstrap.<app>.127-0-0-1.sslip.io  ->  virtual cluster whose dnsLabel is "<app>"
+# This is why a new self-service application only needs a new virtual cluster
+# (dnsLabel = app id) + a TLSRoute; the routing rule here is already generic.
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayListenerPolicy
+metadata:
+  name: sni-forward
+  namespace: kong
+spec:
+  eventGatewayListenerRef:
+    type: namespacedRef
+    namespacedRef:
+      name: sni-listener
+  apiSpec:
+    type: forwardToVirtualCluster
+    forwardToVirtualCluster:
+      name: sni-forward
+      config:
+        type: sni
+        sni:
+          sniSuffix: ".127-0-0-1.sslip.io"
+          brokerHostFormat:
+            type: per_cluster_suffix
+          advertisedPort: 9092

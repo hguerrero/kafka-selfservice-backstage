@@ -1,0 +1,23 @@
+---
+# KonnectAPIAuthConfiguration
+# Authenticates Kong Operator to Konnect using a Personal Access Token (PAT).
+# The control plane, data plane and every virtual cluster reference this.
+#
+# Create the referenced secret BEFORE applying the platform:
+#   kubectl create secret generic konnect-api-auth-secret \
+#     --from-literal=token="$KONNECT_PAT" -n kong
+#
+# serverURL depends on your Konnect region:
+#   US  -> https://us.api.konghq.com
+#   EU  -> https://eu.api.konghq.com
+#   AU  -> https://au.api.konghq.com
+apiVersion: konnect.konghq.com/v1alpha1
+kind: KonnectAPIAuthConfiguration
+metadata:
+  name: konnect-api-auth
+  namespace: kong
+spec:
+  type: secretRef
+  secretRef:
+    name: konnect-api-auth-secret
+  serverURL: https://us.api.konghq.com

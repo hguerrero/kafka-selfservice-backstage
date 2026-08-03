@@ -1,0 +1,16 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fraud-analytics
+  description: Consumes Wealth Management LA sentiment and fraud risk streams.
+  labels:
+    business-unit: wealth-management-la
+    auth-mode: scram
+spec:
+  type: service
+  lifecycle: production
+  owner: wealth-management-la
+  system: wealth-management-la-streams
+  consumesApis:
+    - wealth-management-la-streams

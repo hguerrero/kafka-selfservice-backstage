@@ -1,0 +1,27 @@
+# Snippet to merge into your Backstage app-config.yaml.
+# 1) Enable AsyncAPI as a catalog API type and register this repo as a Location.
+# 2) Allow the GitHub PR scaffolder action (needs an integration token).
+#
+# Requires the AsyncAPI plugin for rendering:
+#   yarn --cwd packages/app add @backstage/plugin-api-docs
+#   yarn --cwd packages/app add @asyncapi/backstage-plugin  # AsyncAPI React renderer
+# and wire the AsyncApiDefinitionWidget into the ApiEntityPage (see plugin README).
+
+integrations:
+  github:
+    - host: github.com
+      token: ${GITHUB_TOKEN}   # PAT or GitHub App token with repo + PR scope
+
+catalog:
+  # AsyncAPI documents are served through API entities of type "asyncapi".
+  rules:
+    - allow: [Component, System, API, Domain, Group, User, Location, Template]
+  locations:
+    - type: url
+      target: https://github.com/your-org/kafka-selfservice-backstage/blob/main/catalog-info.yaml
+      rules:
+        - allow: [API, System, Domain, Group, User, Location, Template]
+
+# The scaffolder actions used by the templates (fetch:template,
+# publish:github:pull-request, catalog:register) ship with Backstage by default.
+scaffolder: {}

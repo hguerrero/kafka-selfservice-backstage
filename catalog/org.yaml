@@ -1,0 +1,36 @@
+---
+# Owners referenced by the systems, APIs and self-service templates.
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: platform-team
+  description: Owns the Kong Event Gateway platform and the self-service templates.
+spec:
+  type: team
+  children: []
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: retail-banking-ny
+  description: Retail Banking NY business unit - owns the RETAIL_NY event streams.
+spec:
+  type: business-unit
+  children: []
+---
+apiVersion: backstage.io/v1alpha1
+kind: Group
+metadata:
+  name: wealth-management-la
+  description: Wealth Management LA business unit - owns the WEALTH_LA event streams.
+spec:
+  type: business-unit
+  children: []
+---
+apiVersion: backstage.io/v1alpha1
+kind: User
+metadata:
+  name: guest
+spec:
+  memberOf:
+    - platform-team

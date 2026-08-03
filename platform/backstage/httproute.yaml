@@ -1,0 +1,37 @@
+---
+# HTTPRoute - exposes Backstage through the shared Kong Gateway (kong-keg), on the
+# "web" HTTP listener added in platform/networking/gateway.yaml. No separate ingress
+# controller and no second data plane - same Kong Gateway as the Kafka traffic.
+#
+# The route lives in the backstage namespace (same as the Service, so no
+# ReferenceGrant is needed) and attaches cross-namespace to the Gateway in the kong
+# namespace, which the "web" listener allows via `allowedRoutes.namespaces.from: All`.
+#
+# Access: with `minikube tunnel` running, http://backstage.127-0-0-1.sslip.io
+# resolves to 127.0.0.1 -> Kong :80 -> Backstage :7007.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: backstage
+  namespace: backstage
+  labels:
+    app: backstage
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: kong-keg
+      namespace: kong
+      sectionName: web
+  hostnames:
+    - backstage.127-0-0-1.sslip.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: backstage
+          port: 7007

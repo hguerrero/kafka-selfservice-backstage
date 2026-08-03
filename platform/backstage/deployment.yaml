@@ -1,0 +1,104 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backstage
+  namespace: backstage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage
+  namespace: backstage
+  labels:
+    app: backstage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage
+  template:
+    metadata:
+      labels:
+        app: backstage
+    spec:
+      serviceAccountName: backstage
+      containers:
+        - name: backstage
+          # Build this image from your `npx @backstage/create-app` project and push it
+          # to a registry your cluster can pull from. See docs/prerequisites.md.
+          image: your-registry/backstage:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - "--config"
+            - "app-config.yaml"
+            - "--config"
+            - "app-config.production.yaml"
+          ports:
+            - name: http
+              containerPort: 7007
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: POSTGRES_PASSWORD
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: GITHUB_TOKEN
+            - name: BACKEND_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: BACKEND_SECRET
+          volumeMounts:
+            - name: app-config
+              mountPath: /app/app-config.production.yaml
+              subPath: app-config.production.yaml
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            requests:
+              memory: 512Mi
+              cpu: 250m
+            limits:
+              memory: 1Gi
+              cpu: "1"
+      volumes:
+        - name: app-config
+          configMap:
+            name: backstage-app-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage
+  namespace: backstage
+  labels:
+    app: backstage
+spec:
+  selector:
+    app: backstage
+  ports:
+    - name: http
+      port: 7007
+      targetPort: http

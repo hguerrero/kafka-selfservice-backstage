@@ -1,0 +1,23 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: wealth-management-la-streams
+  title: Wealth Management LA Event Streams
+  description: Kafka topics offered by Wealth Management LA, via Kong Event Gateway.
+  tags:
+    - kafka
+    - asyncapi
+    - event-gateway
+    - wealth-management-la
+  links:
+    - url: https://developer.konghq.com/event-gateway/
+      title: Kong Event Gateway docs
+      icon: docs
+spec:
+  type: asyncapi
+  lifecycle: production
+  owner: wealth-management-la
+  system: wealth-management-la-streams
+  definition:
+    $text: ../specs/wealth-management-la.asyncapi.yaml

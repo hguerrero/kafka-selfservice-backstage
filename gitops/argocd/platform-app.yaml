@@ -1,0 +1,26 @@
+---
+# Argo CD Application for the platform bootstrap (the "deliver everything" layer).
+# Points at platform/ so the Kafka cluster, Event Gateway control/data plane and the
+# shared listener/gateway are reconciled from Git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kafka-selfservice-platform
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    # Replace with your fork/clone URL.
+    repoURL: https://github.com/your-org/kafka-selfservice-backstage.git
+    targetRevision: main
+    path: platform
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

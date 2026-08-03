@@ -1,0 +1,34 @@
+---
+# Argo CD ApplicationSet for self-service tenants.
+# Generates one Argo CD Application per directory under gitops/apps/*, so every
+# application onboarded through Backstage is picked up automatically with no manual
+# Argo config. The Backstage PR that adds gitops/apps/<app>/ is all it takes.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: kafka-selfservice-tenants
+  namespace: argocd
+spec:
+  goTemplate: true
+  generators:
+    - git:
+        repoURL: https://github.com/your-org/kafka-selfservice-backstage.git
+        revision: main
+        directories:
+          - path: gitops/apps/*
+  template:
+    metadata:
+      name: 'tenant-{{.path.basename}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/your-org/kafka-selfservice-backstage.git
+        targetRevision: main
+        path: '{{.path.path}}/kong'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: kong
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

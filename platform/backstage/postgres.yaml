@@ -1,0 +1,80 @@
+---
+# PostgreSQL for the Backstage catalog. Fine for a demo; use a managed database or a
+# proper StatefulSet with backups for anything real.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backstage-postgres
+  namespace: backstage
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backstage-postgres
+  namespace: backstage
+  labels:
+    app: backstage-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backstage-postgres
+  template:
+    metadata:
+      labels:
+        app: backstage-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backstage-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "backstage"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+              cpu: 500m
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: backstage-postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backstage-postgres
+  namespace: backstage
+spec:
+  selector:
+    app: backstage-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

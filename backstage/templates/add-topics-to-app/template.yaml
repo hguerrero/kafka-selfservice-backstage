@@ -1,0 +1,113 @@
+---
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: add-topics-to-app
+  title: Add Topics to Application
+  description: |
+    Grant an already-onboarded application access to additional Kafka topics.
+    This only regenerates the application's ACL policy - the virtual cluster,
+    credentials and routing are untouched. Delivered as a small GitOps pull request.
+  tags:
+    - kafka
+    - event-gateway
+    - self-service
+    - acls
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Application
+      required: [appName, businessUnit]
+      properties:
+        appName:
+          title: Application name
+          type: string
+          description: The existing application (virtual cluster) to update.
+          pattern: "^[a-z][a-z0-9-]{2,40}[a-z0-9]$"
+          ui:autofocus: true
+        businessUnit:
+          title: Stream provider
+          type: string
+          enum:
+            - retail-banking-ny
+            - wealth-management-la
+          enumNames:
+            - Retail Banking NY
+            - Wealth Management LA
+      dependencies:
+        businessUnit:
+          oneOf:
+            - required: [topics]
+              properties:
+                businessUnit:
+                  enum: [retail-banking-ny]
+                topics:
+                  title: All topics this app should have (re-select the full set)
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  ui:widget: checkboxes
+                  items:
+                    type: string
+                    enum:
+                      - payments.card-dispatch.v1
+                      - markets.exchange-ticker.v1
+                      - core.accounts.status.v2
+            - required: [topics]
+              properties:
+                businessUnit:
+                  enum: [wealth-management-la]
+                topics:
+                  title: All topics this app should have (re-select the full set)
+                  type: array
+                  minItems: 1
+                  uniqueItems: true
+                  ui:widget: checkboxes
+                  items:
+                    type: string
+                    enum:
+                      - advisor.daily-client-activity.v1
+                      - clients.sentiment-signals.v1
+                      - infosec.security.fraud.risk-scores.v3
+
+    - title: GitOps delivery
+      required: [repoUrl]
+      properties:
+        repoUrl:
+          title: GitOps repository
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: render
+      name: Regenerate ACL policy
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: gitops/apps/${{ parameters.appName }}
+        values:
+          appName: ${{ parameters.appName }}
+          businessUnit: ${{ parameters.businessUnit }}
+          topics: ${{ parameters.topics }}
+
+    - id: publish
+      name: Open GitOps pull request
+      action: publish:github:pull-request
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        branchName: update-acl-${{ parameters.appName }}
+        title: "Update topic access for ${{ parameters.appName }}"
+        description: |
+          ACL-only change via Backstage. Sets the full allowed topic set for
+          `${{ parameters.appName }}`:
+          ${{ parameters.topics }}
+
+  output:
+    links:
+      - title: GitOps pull request
+        url: ${{ steps.publish.output.remoteUrl }}

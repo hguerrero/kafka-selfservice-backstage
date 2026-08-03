@@ -1,0 +1,29 @@
+---
+# Self-signed issuer + wildcard certificate for the Event Gateway TLS listener.
+# Produces the "keg-tls-secret" referenced by platform/event-gateway/04-listener.yaml.
+# Requires cert-manager (https://cert-manager.io). If you don't run cert-manager,
+# use scripts/generate-cert.sh instead and skip this file.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: keg-selfsigned
+  namespace: kong
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: keg-tls
+  namespace: kong
+spec:
+  secretName: keg-tls-secret
+  duration: 8760h   # 1 year
+  issuerRef:
+    name: keg-selfsigned
+    kind: Issuer
+  commonName: 127-0-0-1.sslip.io
+  dnsNames:
+    # One wildcard covers every current and future virtual cluster host,
+    # so onboarding a new app never requires touching this certificate.
+    - "*.127-0-0-1.sslip.io"

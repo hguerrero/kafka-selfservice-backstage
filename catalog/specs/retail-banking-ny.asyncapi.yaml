@@ -1,0 +1,110 @@
+asyncapi: 3.0.0
+info:
+  title: Retail Banking NY Event Streams
+  version: 1.0.0
+  description: |
+    Event streams owned by the Retail Banking NY business unit at Northwind Financial,
+    exposed through Kong Event Gateway. Consumers connect to a per-application virtual
+    cluster; the `RETAIL_NY.` broker prefix is hidden, so the logical channel names
+    below are exactly what clients use.
+
+    To consume any of these channels, use the **Consume Kafka Topics** self-service
+    template in Backstage. It provisions a virtual cluster, SCRAM (or OAuth)
+    credentials, and ACLs scoped to the channels you select.
+  contact:
+    name: Retail Banking NY Platform Team
+    email: retail-ny-platform@northwind.example
+  tags:
+    - name: business-unit:retail-banking-ny
+    - name: domain:banking
+servers:
+  event-gateway:
+    host: "bootstrap.{application}.127-0-0-1.sslip.io:9092"
+    protocol: kafka-secure
+    description: >
+      Kong Event Gateway virtual-cluster bootstrap. `{application}` is your app's
+      Backstage entity name, assigned when you run the self-service template.
+    variables:
+      application:
+        description: Your provisioned application (virtual cluster) name.
+        default: your-app
+    security:
+      - $ref: "#/components/securitySchemes/scram"
+    bindings:
+      kafka:
+        schemaRegistryUrl: ""
+channels:
+  payments.card-dispatch.v1:
+    address: payments.card-dispatch.v1
+    description: Card issuance and dispatch lifecycle events for retail customers.
+    messages:
+      cardDispatched:
+        $ref: "#/components/messages/CardDispatched"
+    bindings:
+      kafka:
+        topic: payments.card-dispatch.v1
+  markets.exchange-ticker.v1:
+    address: markets.exchange-ticker.v1
+    description: High-frequency market exchange ticker feed (1 hour retention).
+    messages:
+      ticker:
+        $ref: "#/components/messages/Ticker"
+    bindings:
+      kafka:
+        topic: markets.exchange-ticker.v1
+  core.accounts.status.v2:
+    address: core.accounts.status.v2
+    description: Core banking account status changes (7 day retention).
+    messages:
+      accountStatusChanged:
+        $ref: "#/components/messages/AccountStatusChanged"
+    bindings:
+      kafka:
+        topic: core.accounts.status.v2
+operations:
+  receiveCardDispatched:
+    action: receive
+    channel:
+      $ref: "#/channels/payments.card-dispatch.v1"
+  receiveTicker:
+    action: receive
+    channel:
+      $ref: "#/channels/markets.exchange-ticker.v1"
+  receiveAccountStatus:
+    action: receive
+    channel:
+      $ref: "#/channels/core.accounts.status.v2"
+components:
+  securitySchemes:
+    scram:
+      type: scramSha256
+      description: SASL/SCRAM-SHA-256 over TLS. Credentials are issued per application.
+  messages:
+    CardDispatched:
+      name: CardDispatched
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          cardId: { type: string }
+          accountId: { type: string }
+          dispatchedAt: { type: string, format: date-time }
+          carrier: { type: string }
+    Ticker:
+      name: Ticker
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          symbol: { type: string }
+          price: { type: number }
+          ts: { type: string, format: date-time }
+    AccountStatusChanged:
+      name: AccountStatusChanged
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          accountId: { type: string }
+          status: { type: string, enum: [ACTIVE, FROZEN, CLOSED] }
+          changedAt: { type: string, format: date-time }

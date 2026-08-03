@@ -1,0 +1,29 @@
+---
+# EventGatewayBackendCluster
+# Points Kong Event Gateway at the upstream Kafka cluster (the Strimzi "northwind"
+# cluster in the kafka namespace). This is the ONLY thing that talks to Kafka
+# directly; all client credentials are terminated at the gateway (mediation:
+# terminate on each virtual cluster), so the backend connection stays anonymous.
+#
+# Service name format: {cluster-name}-kafka-bootstrap.{namespace}.svc.cluster.local
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayBackendCluster
+metadata:
+  name: default-backend-cluster
+  namespace: kong
+spec:
+  gatewayRef:
+    type: namespacedRef
+    namespacedRef:
+      name: cp-event-gateway
+  apiSpec:
+    name: northwind-backend-cluster
+    bootstrapServers:
+      - northwind-kafka-bootstrap.kafka.svc.cluster.local:9092
+    authentication:
+      type: anonymous
+      anonymous: {}
+    # Required when virtual clusters authenticate clients but the backend is anonymous.
+    insecureAllowAnonymousVirtualClusterAuth: Enabled
+    tls:
+      enabled: Disabled

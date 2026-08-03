@@ -1,0 +1,35 @@
+---
+# EventGatewayVirtualCluster - fraud-analytics
+# WORKED EXAMPLE: the rendered output of the "Consume Kafka Topics" template for an
+# app named "fraud-analytics" consuming Wealth Management LA topics with SCRAM.
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayVirtualCluster
+metadata:
+  name: fraud-analytics
+  namespace: kong
+  labels:
+    app.kubernetes.io/managed-by: backstage
+    business-unit: wealth-management-la
+spec:
+  eventGatewayBackendClusterRef:
+    type: namespacedRef
+    namespacedRef:
+      name: default-backend-cluster
+  apiSpec:
+    name: fraud-analytics
+    dnsLabel: fraud-analytics
+    aclMode: enforce_on_gateway
+    namespace:
+      prefix: "WEALTH_LA."
+      mode: hide_prefix
+    authentication:
+      - type: sasl_scram
+        mediation: terminate
+        mechanism: SCRAM-SHA-256
+        principals:
+          - username: fraud-analytics
+            password:
+              type: secretRef
+              secretRef:
+                name: fraud-analytics-kafka-scram
+                key: password

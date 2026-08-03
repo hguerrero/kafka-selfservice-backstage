@@ -1,0 +1,54 @@
+---
+# EventGatewayVirtualClusterPolicy (ACLs) - ${{ values.appName }}
+# Grants the "${{ values.appName }}" principal READ access to exactly the requested
+# topics plus its own consumer groups. Everything else is denied because the virtual
+# cluster runs in enforce_on_gateway mode.
+#
+# THIS IS THE FILE YOU EDIT LATER. To grant access to more topics, add them to the
+# "Add topics" self-service template (or append resource_names below) - nothing else
+# about the application changes.
+#
+# NOTE on the CRD kind: this follows the same reference pattern as the
+# EventGatewayVirtualClusterConsumePolicy / ...ProducePolicy CRDs. Depending on your
+# Kong Operator version, ACLs may instead be expressed inline on the
+# EventGatewayVirtualCluster (spec.apiSpec.clusterPolicies) using the identical
+# config below. Verify against your installed CRDs and move the block if needed.
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayVirtualClusterPolicy
+metadata:
+  name: ${{ values.appName }}-acl
+  namespace: kong
+  labels:
+    app.kubernetes.io/managed-by: backstage
+    business-unit: ${{ values.businessUnit }}
+spec:
+  eventGatewayVirtualClusterRef:
+    type: namespacedRef
+    namespacedRef:
+      name: ${{ values.appName }}
+  apiSpec:
+    type: acls
+    acls:
+      name: ${{ values.appName }}-acl
+      description: Read access for ${{ values.appName }} to selected ${{ values.businessUnit }} topics.
+      # Only the "${{ values.appName }}" principal is granted access.
+      condition: "context.auth.principal.name == '${{ values.appName }}'"
+      config:
+        rules:
+          - action: allow
+            resource_type: topic
+            operations:
+              - name: describe
+              - name: read
+            resource_names:
+            {%- for topic in values.topics %}
+              - match: "${{ topic }}"
+            {%- endfor %}
+          - action: allow
+            resource_type: group
+            operations:
+              - name: describe
+              - name: read
+            resource_names:
+              # This app may only use consumer groups it prefixes with its own name.
+              - match: "${{ values.appName }}.*"

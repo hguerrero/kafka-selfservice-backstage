@@ -1,0 +1,26 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Domain
+metadata:
+  name: northwind-financial
+  description: Northwind Financial event-streaming domain fronted by Kong Event Gateway.
+spec:
+  owner: platform-team
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: retail-banking-ny-streams
+  description: Retail Banking NY Kafka event streams (products).
+spec:
+  owner: retail-banking-ny
+  domain: northwind-financial
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: wealth-management-la-streams
+  description: Wealth Management LA Kafka event streams (products).
+spec:
+  owner: wealth-management-la
+  domain: northwind-financial

@@ -1,0 +1,46 @@
+---
+# Production app-config for the in-cluster Backstage, mounted at
+# /app/app-config.production.yaml and layered on top of the image's app-config.yaml.
+# Secrets are injected as env vars from backstage-secrets (see deployment.yaml).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backstage-app-config
+  namespace: backstage
+data:
+  app-config.production.yaml: |
+    app:
+      # Exposed through the Kong Gateway "web" listener (see httproute.yaml).
+      # For plain `kubectl port-forward` access instead, set both to http://localhost:7007.
+      baseUrl: http://backstage.127-0-0-1.sslip.io
+    backend:
+      baseUrl: http://backstage.127-0-0-1.sslip.io
+      listen:
+        host: 0.0.0.0
+        port: 7007
+      auth:
+        keys:
+          - secret: ${BACKEND_SECRET}
+      cors:
+        origin: http://backstage.127-0-0-1.sslip.io
+      database:
+        client: pg
+        connection:
+          host: backstage-postgres.backstage.svc.cluster.local
+          port: 5432
+          user: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
+
+    integrations:
+      github:
+        - host: github.com
+          token: ${GITHUB_TOKEN}
+
+    catalog:
+      rules:
+        - allow: [Component, System, API, Domain, Group, User, Location, Template]
+      locations:
+        - type: url
+          target: https://github.com/your-org/kafka-selfservice-backstage/blob/main/catalog-info.yaml
+          rules:
+            - allow: [API, System, Domain, Group, User, Location, Template]

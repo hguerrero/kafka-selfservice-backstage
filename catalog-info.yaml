@@ -1,0 +1,18 @@
+---
+# Root Location entity. Register this single URL in Backstage
+# (Settings -> Register existing component, or catalog.locations in app-config)
+# and it will pull in the org, systems, AsyncAPI APIs and both self-service templates.
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: kafka-selfservice
+  description: Kafka self-service - org, streams catalog, and scaffolder templates.
+spec:
+  type: url
+  targets:
+    - ./catalog/org.yaml
+    - ./catalog/systems.yaml
+    - ./catalog/apis/retail-banking-ny.yaml
+    - ./catalog/apis/wealth-management-la.yaml
+    - ./backstage/templates/consume-kafka-topics/template.yaml
+    - ./backstage/templates/add-topics-to-app/template.yaml

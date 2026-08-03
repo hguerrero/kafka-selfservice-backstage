@@ -1,0 +1,16 @@
+---
+# KonnectEventGateway
+# Creates the Event Gateway control plane in Konnect. Every other Event Gateway
+# resource (backend cluster, listener, data plane, virtual clusters) references it.
+apiVersion: konnect.konghq.com/v1alpha1
+kind: KonnectEventGateway
+metadata:
+  name: cp-event-gateway
+  namespace: kong
+spec:
+  apiSpec:
+    name: kafka-selfservice
+    description: Self-service Kafka access control plane, managed by Kong Operator
+  konnect:
+    authRef:
+      name: konnect-api-auth

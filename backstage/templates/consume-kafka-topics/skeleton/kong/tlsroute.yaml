@@ -1,0 +1,29 @@
+---
+# TLSRoute - ${{ values.appName }}
+# Binds this application's bootstrap/broker hostnames to the shared Event Gateway
+# data plane service (keg-dp-kafka). The gateway terminates TLS and routes to the
+# "${{ values.appName }}" virtual cluster by SNI.
+#   bootstrap: bootstrap.${{ values.appName }}.127-0-0-1.sslip.io:9092
+#   brokers:   broker-{0,1,2}.${{ values.appName }}.127-0-0-1.sslip.io:9092
+apiVersion: gateway.networking.k8s.io/v1
+kind: TLSRoute
+metadata:
+  name: keg-tls-${{ values.appName }}
+  namespace: kong
+  labels:
+    app.kubernetes.io/managed-by: backstage
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: kong-keg
+      namespace: kong
+      sectionName: kafka-tls
+  hostnames:
+    - "*.${{ values.appName }}.127-0-0-1.sslip.io"
+  rules:
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: keg-dp-kafka
+          port: 9092

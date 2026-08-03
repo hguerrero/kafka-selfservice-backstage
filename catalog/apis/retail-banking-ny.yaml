@@ -1,0 +1,26 @@
+---
+# AsyncAPI API entity - the Backstage catalog surface for the Retail Banking NY
+# streams. Developers discover this in the catalog, read the channels, then use
+# the "Consume Kafka Topics" template to request access.
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: retail-banking-ny-streams
+  title: Retail Banking NY Event Streams
+  description: Kafka topics offered by Retail Banking NY, via Kong Event Gateway.
+  tags:
+    - kafka
+    - asyncapi
+    - event-gateway
+    - retail-banking-ny
+  links:
+    - url: https://developer.konghq.com/event-gateway/
+      title: Kong Event Gateway docs
+      icon: docs
+spec:
+  type: asyncapi
+  lifecycle: production
+  owner: retail-banking-ny
+  system: retail-banking-ny-streams
+  definition:
+    $text: ../specs/retail-banking-ny.asyncapi.yaml

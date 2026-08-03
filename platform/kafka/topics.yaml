@@ -1,0 +1,113 @@
+---
+# Northwind Financial - Kafka topics (the "products" offered through self-service).
+# Topics carry a business-unit prefix on the broker; each virtual cluster hides the
+# prefix so consuming apps use the logical name only. Example:
+#   broker: RETAIL_NY.payments.card-dispatch.v1
+#   client: payments.card-dispatch.v1
+#
+# Each logical topic here is published to Backstage as an AsyncAPI API entity
+# (see catalog/). App developers browse these and request access via the template.
+
+# --- Retail Banking NY ------------------------------------------------------
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: retail-ny-payments-card-dispatch-v1
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: northwind
+    business-unit: retail-banking-ny
+spec:
+  topicName: RETAIL_NY.payments.card-dispatch.v1
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: "86400000"
+    cleanup.policy: delete
+    compression.type: lz4
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: retail-ny-markets-exchange-ticker-v1
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: northwind
+    business-unit: retail-banking-ny
+spec:
+  topicName: RETAIL_NY.markets.exchange-ticker.v1
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: "3600000"
+    cleanup.policy: delete
+    compression.type: lz4
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: retail-ny-core-accounts-status-v2
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: northwind
+    business-unit: retail-banking-ny
+spec:
+  topicName: RETAIL_NY.core.accounts.status.v2
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: "604800000"
+    cleanup.policy: delete
+    compression.type: lz4
+---
+# --- Wealth Management LA ----------------------------------------------------
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: wealth-la-advisor-daily-client-activity-v1
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: northwind
+    business-unit: wealth-management-la
+spec:
+  topicName: WEALTH_LA.advisor.daily-client-activity.v1
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: "604800000"
+    cleanup.policy: delete
+    compression.type: lz4
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: wealth-la-clients-sentiment-signals-v1
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: northwind
+    business-unit: wealth-management-la
+spec:
+  topicName: WEALTH_LA.clients.sentiment-signals.v1
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: "86400000"
+    cleanup.policy: delete
+    compression.type: lz4
+---
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaTopic
+metadata:
+  name: wealth-la-infosec-fraud-risk-scores-v3
+  namespace: kafka
+  labels:
+    strimzi.io/cluster: northwind
+    business-unit: wealth-management-la
+spec:
+  topicName: WEALTH_LA.infosec.security.fraud.risk-scores.v3
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: "2592000000"
+    cleanup.policy: delete
+    compression.type: lz4

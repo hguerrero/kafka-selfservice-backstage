@@ -1,0 +1,58 @@
+---
+# EventGatewayVirtualCluster - ${{ values.appName }}
+# Dedicated virtual cluster for the "${{ values.appName }}" application.
+# - dnsLabel drives SNI routing: bootstrap.${{ values.appName }}.127-0-0-1.sslip.io
+# - the "${{ values.namespacePrefix }}" broker prefix is hidden from the client
+# - aclMode: enforce_on_gateway -> principals start with NO access; the ACL policy
+#   in acl-policy.yaml grants read on exactly the requested topics.
+apiVersion: configuration.konghq.com/v1alpha1
+kind: EventGatewayVirtualCluster
+metadata:
+  name: ${{ values.appName }}
+  namespace: kong
+  labels:
+    app.kubernetes.io/managed-by: backstage
+    business-unit: ${{ values.businessUnit }}
+spec:
+  eventGatewayBackendClusterRef:
+    type: namespacedRef
+    namespacedRef:
+      name: default-backend-cluster
+  apiSpec:
+    name: ${{ values.appName }}
+    dnsLabel: ${{ values.appName }}
+    aclMode: enforce_on_gateway
+    namespace:
+      prefix: "${{ values.namespacePrefix }}"
+      mode: hide_prefix
+    authentication:
+    {%- if values.authMode == "scram" %}
+      # SASL/SCRAM-SHA-256, terminated at the gateway: the credential is validated
+      # here and never forwarded to Kafka. The password lives in the Secret rendered
+      # in scram-credentials.yaml.
+      # NOTE: the exact password secret-ref shape is operator-version dependent -
+      # confirm against your installed EventGatewayVirtualCluster CRD. If your
+      # version only accepts inline principals, copy the password value in directly.
+      - type: sasl_scram
+        mediation: terminate
+        mechanism: SCRAM-SHA-256
+        principals:
+          - username: ${{ values.appName }}
+            password:
+              type: secretRef
+              secretRef:
+                name: ${{ values.appName }}-kafka-scram
+                key: password
+    {%- else %}
+      # OAuth / OIDC: client presents a bearer token; the gateway verifies it against
+      # the configured auth server (e.g. Kong Identity). The ACL condition in
+      # acl-policy.yaml matches on the token's principal/subject claim.
+      # See: https://developer.konghq.com/how-to/event-gateway/kong-identity-oauth/
+      - type: oauth
+        mediation: terminate
+        oauth:
+          # Replace with your issuer / JWKS endpoint (Kong Identity or external IdP).
+          issuer: https://<your-kong-identity-issuer>
+          # The subject/client id that identifies this application in tokens.
+          audience: ${{ values.appName }}
+    {%- endif %}

@@ -1,0 +1,27 @@
+---
+# KegDataPlane
+# Runs the Kong Event Gateway data plane in-cluster, managed by Kong Operator and
+# attached to the Konnect control plane above. ClusterIP because the Kubernetes
+# Gateway (platform/networking/gateway.yaml) is the public entrypoint; the data
+# plane stays internal and handles TLS termination + SNI routing.
+#
+# Kong Operator creates a Service named "<name>-kafka" (keg-dp-kafka) that the
+# per-tenant TLSRoutes target.
+apiVersion: eventgateway.konghq.com/v1alpha1
+kind: KegDataPlane
+metadata:
+  name: keg-dp
+  namespace: kong
+spec:
+  controlPlaneRef:
+    type: konnectNamespacedRef
+    konnectNamespacedRef:
+      name: cp-event-gateway
+  network:
+    services:
+      kafka:
+        type: ClusterIP
+        ports:
+          - name: kafka
+            port: 9092
+            targetPort: 9092

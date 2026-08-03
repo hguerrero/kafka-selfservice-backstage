@@ -1,0 +1,75 @@
+---
+# GatewayConfiguration
+# Tells Kong Operator how to provision the Kong Gateway data plane that fronts the
+# Event Gateway. References the same Konnect auth secret used everywhere else.
+apiVersion: gateway-operator.konghq.com/v2beta1
+kind: GatewayConfiguration
+metadata:
+  name: kong-configuration
+  namespace: kong
+spec:
+  konnect:
+    authRef:
+      name: konnect-api-auth
+  dataPlaneOptions:
+    deployment:
+      podTemplateSpec:
+        spec:
+          containers:
+            - name: proxy
+              image: kong/kong-gateway:3.14
+---
+# GatewayClass - provisioned by Kong Operator (not the Ingress Controller).
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: kong
+spec:
+  controllerName: konghq.com/gateway-operator
+  parametersRef:
+    group: gateway-operator.konghq.com
+    kind: GatewayConfiguration
+    name: kong-configuration
+    namespace: kong
+---
+# Gateway - public entrypoint for Kafka clients on port 9092 with TLS passthrough,
+# so the Event Gateway data plane terminates TLS and routes by SNI.
+#
+# The wildcard "*.127-0-0-1.sslip.io" covers every virtual cluster bootstrap/broker
+# host for a local minikube demo (run `minikube tunnel`). For a real cluster,
+# replace with your LoadBalancer IP, e.g. "*.192-168-49-2.sslip.io".
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: kong-keg
+  namespace: kong
+spec:
+  gatewayClassName: kong
+  listeners:
+    - name: kafka-tls
+      protocol: TLS
+      port: 9092
+      hostname: "*.127-0-0-1.sslip.io"
+      tls:
+        mode: Passthrough
+        certificateRefs: []
+      allowedRoutes:
+        namespaces:
+          from: Same
+        kinds:
+          - group: gateway.networking.k8s.io
+            kind: TLSRoute
+    # HTTP listener for web UIs (Backstage). Kept on the same Kong data plane as the
+    # Kafka listener. `from: All` lets the Backstage HTTPRoute (in the backstage
+    # namespace) attach to this Gateway - cross-namespace parentRef attachment is
+    # governed here, no ReferenceGrant needed because the route's backend is local.
+    - name: web
+      protocol: HTTP
+      port: 80
+      hostname: "backstage.127-0-0-1.sslip.io"
+      allowedRoutes:
+        namespaces:
+          from: All
+        kinds:
+          - group: gateway.networking.k8s.io
+            kind: HTTPRoute

@@ -1,0 +1,12 @@
+---
+# Kustomization for the ${{ values.appName }} tenant. Argo CD (or `kubectl apply -k`)
+# applies these together. The ACL policy is intentionally its own file so later
+# access changes are a one-file diff.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kong
+resources:
+  - virtual-cluster.yaml
+  - acl-policy.yaml
+  - tlsroute.yaml
+  - scram-credentials.yaml

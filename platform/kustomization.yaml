@@ -1,0 +1,27 @@
+---
+# Platform bootstrap - the "first time, deliver everything" bundle.
+# Applies the Kafka cluster, Event Gateway control plane + data plane, the shared
+# listener/SNI routing, and the Kubernetes Gateway. Per-application virtual clusters
+# are NOT here - those are created by the Backstage self-service templates and live
+# under gitops/apps/.
+#
+# Prerequisites (see docs/architecture.md):
+#   - Kong Operator installed
+#   - Strimzi installed in the kafka namespace
+#   - cert-manager installed (or run scripts/generate-cert.sh)
+#   - konnect-api-auth-secret created in the kong namespace
+#
+# Apply:  kubectl apply -k platform/
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - event-gateway/00-namespaces.yaml
+  - event-gateway/01-konnect-auth.yaml
+  - event-gateway/02-event-gateway-cp.yaml
+  - event-gateway/03-backend-cluster.yaml
+  - event-gateway/04-listener.yaml
+  - event-gateway/05-keg-dataplane.yaml
+  - networking/gateway.yaml
+  - networking/tls-certificate.yaml
+  - kafka/kafka-cluster.yaml
+  - kafka/topics.yaml
