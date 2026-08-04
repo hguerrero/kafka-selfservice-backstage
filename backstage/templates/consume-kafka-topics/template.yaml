@@ -105,9 +105,11 @@ spec:
       required: [repoUrl]
       properties:
         repoUrl:
-          title: GitOps repository
+          title: GitOps config repository
           type: string
-          description: Repository that Argo CD watches for tenant manifests.
+          description: >
+            The kafka-selfservice-gitops repo (Argo CD watches its apps/*). PRs from
+            this template land there, not in the portal/platform repo.
           ui:field: RepoUrlPicker
           ui:options:
             allowedHosts:
@@ -119,7 +121,7 @@ spec:
       action: fetch:template
       input:
         url: ./skeleton
-        targetPath: gitops/apps/${{ parameters.appName }}
+        targetPath: apps/${{ parameters.appName }}
         values:
           appName: ${{ parameters.appName }}
           owner: ${{ parameters.owner }}
@@ -155,7 +157,7 @@ spec:
       action: catalog:register
       input:
         repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
-        catalogInfoPath: /gitops/apps/${{ parameters.appName }}/catalog-info.yaml
+        catalogInfoPath: /apps/${{ parameters.appName }}/catalog-info.yaml
         optional: true
 
   output:

@@ -2,13 +2,13 @@
 # Local mirror of the CI checks: lint YAML, validate manifests and AsyncAPI specs.
 set -euo pipefail
 
-echo "==> yamllint (platform, gitops, catalog)"
-yamllint -d relaxed platform gitops/apps catalog 2>/dev/null || \
+echo "==> yamllint (platform, catalog)"
+yamllint -d relaxed platform catalog 2>/dev/null || \
   echo "   (install yamllint: pip install yamllint)"
 
-echo "==> kubeconform (platform + tenant manifests)"
+echo "==> kubeconform (platform manifests)"
 if command -v kubeconform >/dev/null 2>&1; then
-  kubeconform -ignore-missing-schemas -summary platform gitops/apps
+  kubeconform -ignore-missing-schemas -summary platform
 else
   echo "   (install kubeconform: https://github.com/yannh/kubeconform)"
 fi

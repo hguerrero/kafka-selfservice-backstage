@@ -3,7 +3,7 @@
 # Applies the Kafka cluster, Event Gateway control plane + data plane, the shared
 # listener/SNI routing, and the Kubernetes Gateway. Per-application virtual clusters
 # are NOT here - those are created by the Backstage self-service templates and live
-# under gitops/apps/.
+# in the companion kafka-selfservice-gitops repo under apps/.
 #
 # Prerequisites (see docs/architecture.md):
 #   - Kong Operator installed

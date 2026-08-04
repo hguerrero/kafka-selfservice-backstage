@@ -5,8 +5,8 @@
 | Layer | What it is | In this repo |
 |-------|------------|--------------|
 | Developer portal | Backstage (in-cluster) — catalog of streams (AsyncAPI) + self-service templates | `catalog/`, `backstage/`, deployed via `platform/backstage/` |
-| Delivery | Git + Argo CD (ApplicationSet per tenant) | `gitops/` |
-| Control | Kong Operator reconciling Konnect + data plane from CRDs | `platform/`, `gitops/apps/*/kong/` |
+| Delivery | Git + Argo CD (ApplicationSet per tenant) | `kafka-selfservice-gitops` repo |
+| Control | Kong Operator reconciling Konnect + data plane from CRDs | `platform/`, config repo `apps/*/kong/` |
 | Data | Kong Event Gateway data plane (KNEP) fronting Kafka | `platform/event-gateway/`, `platform/networking/` |
 | Backing store | Strimzi-managed Apache Kafka (`northwind`) | `platform/kafka/` |
 
@@ -15,7 +15,7 @@
 ```mermaid
 flowchart LR
   dev([App developer]) -->|browse AsyncAPI, pick topics| bs[Backstage template]
-  bs -->|opens PR: gitops/apps/&lt;app&gt;/| git[(Git repo)]
+  bs -->|opens PR: apps/&lt;app&gt;/| git[(config repo)]
   git -->|ApplicationSet syncs| argo[Argo CD]
   argo -->|applies CRDs| ko[Kong Operator]
   ko -->|configures| konnect[(Konnect control plane)]

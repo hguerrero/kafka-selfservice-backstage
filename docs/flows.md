@@ -18,7 +18,7 @@ sequenceDiagram
   participant KO as Kong Operator
   participant KEG as Event Gateway
   Dev->>BS: Pick provider + topics + auth (SCRAM)
-  BS->>Git: PR adds gitops/apps/<app>/ (VC, ACL, TLSRoute, Secret)
+  BS->>Git: PR adds apps/<app>/ to config repo (VC, ACL, TLSRoute, Secret)
   Dev->>Git: Review + merge
   Git->>Argo: ApplicationSet detects new tenant dir
   Argo->>KO: Apply CRDs
@@ -36,7 +36,7 @@ What "deliver everything" covers:
 ## Flow 2 — Add topics later ("just update the ACLs")
 
 Template: **Add Topics to Application**. Regenerates only
-`gitops/apps/<app>/kong/acl-policy.yaml`. The virtual cluster, credentials and route
+`apps/<app>/kong/acl-policy.yaml` (in the config repo). The virtual cluster, credentials and route
 are untouched, so the app keeps the same bootstrap endpoint and the same credential.
 
 ```mermaid

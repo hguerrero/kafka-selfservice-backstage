@@ -10,6 +10,12 @@ Operator** on Kubernetes.
 > The first request delivers everything (control plane, data plane, credentials,
 > ACLs, routing). Later requests usually just update the ACLs to add more topics.
 
+> **Two repos.** This is the **portal/platform** repo (catalog, templates, platform
+> bootstrap). Tenant GitOps config lives in a companion repo,
+> [`kafka-selfservice-gitops`](https://github.com/your-org/kafka-selfservice-gitops):
+> the templates open PRs there and Argo CD watches it. See
+> [`docs/repositories.md`](docs/repositories.md).
+
 ## Why it's interesting
 
 - **Zero broker changes to grant access.** Credentials are terminated at the gateway
@@ -36,14 +42,13 @@ Operator** on Kubernetes.
 │   ├── networking/          #   GatewayClass/Config, Gateway, TLS cert
 │   ├── backstage/           #   in-cluster Backstage: Deployment, Service, Postgres, config
 │   └── kafka/               #   Strimzi Kafka cluster + topics
-├── gitops/
-│   ├── argocd/              # platform App + tenants ApplicationSet
-│   └── apps/                # one dir per onboarded app (Backstage writes here)
-│       └── fraud-analytics/ #   worked example (rendered output)
 ├── examples/kafka-client/   # SCRAM client config + test commands
 ├── scripts/                 # bootstrap, cert, validate
-└── docs/                    # architecture.md, flows.md
+└── docs/                    # architecture, flows, prerequisites, secrets, repositories
 ```
+
+Tenant config (the `apps/*` directories Backstage writes to, plus the Argo CD
+`ApplicationSet`) lives in the companion **`kafka-selfservice-gitops`** repo, not here.
 
 ## Prerequisites
 
@@ -64,12 +69,15 @@ The essentials:
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
 ```
 
-**Argo CD** — reconciles `platform/` and auto-onboards each `gitops/apps/*` tenant:
+**Argo CD** — reconciles `platform/` (this repo) and auto-onboards each tenant from
+the companion repo's `apps/*`:
 
 ```bash
 kubectl create namespace argocd
 kubectl apply -n argocd --server-side --force-conflicts \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# then apply argocd/platform-app.yaml + argocd/tenants-appset.yaml from
+# the kafka-selfservice-gitops repo (edit repoURLs first).
 ```
 
 **Backstage** — runs in-cluster; build the image once, then deploy the manifests:
@@ -100,25 +108,27 @@ Kong Operator + Strimzi install commands (and the AsyncAPI page wiring) are also
 export KONNECT_PAT=kpat_xxx
 ./scripts/bootstrap.sh
 
-# 2) Either let Argo CD manage tenants...
-kubectl apply -f gitops/argocd/            # edit repoURL first
-# ...or apply the worked example directly:
-kubectl apply -k gitops/apps/fraud-analytics/kong/
+# 2) Tenants come from the companion repo (kafka-selfservice-gitops):
+#    let Argo CD manage them...
+kubectl apply -f ../kafka-selfservice-gitops/argocd/   # edit repoURLs first
+#    ...or apply the worked example directly:
+kubectl apply -k ../kafka-selfservice-gitops/apps/fraud-analytics/kong/
 
 # 3) Expose the gateway locally and test
 minikube tunnel &
 cat examples/kafka-client/test-commands.md
 ```
 
-To wire up the portal, register `catalog-info.yaml` in Backstage and merge
-`backstage/app-config.snippet.yaml` into your `app-config.yaml`.
+To wire up the portal, point the in-cluster Backstage `catalog.locations` at this
+repo's `catalog-info.yaml` (see `platform/backstage/app-config.configmap.yaml`).
 
 ## The self-service experience
 
 1. A developer opens the **Retail Banking NY** or **Wealth Management LA** API in the
    Backstage catalog and reads the AsyncAPI channels (topics).
 2. They run **Consume Kafka Topics**, name their app, pick topics, and choose SCRAM or
-   OAuth. Backstage opens a PR under `gitops/apps/<app>/`.
+   OAuth. Backstage opens a PR adding `apps/<app>/` to the `kafka-selfservice-gitops`
+   repo.
 3. On merge, Argo CD + Kong Operator provision the virtual cluster, credentials, ACLs
    and route. The app connects to `bootstrap.<app>.127-0-0-1.sslip.io:9092`.
 4. Need more topics later? **Add Topics to Application** changes only the ACL policy.
@@ -139,9 +149,9 @@ See [`docs/flows.md`](docs/flows.md) for sequence diagrams and
   CRDs in *your* operator version: the SCRAM principal **password secret-ref** shape,
   and whether ACLs are a separate `EventGatewayVirtualClusterPolicy` or inline on the
   virtual cluster (`spec.apiSpec.clusterPolicies`). Both are called out in comments.
-- SCRAM passwords are placeholders (`REPLACE_ME`). For real use, generate them with a
-  custom scaffolder action and store via SealedSecrets / External Secrets — never
-  commit plaintext.
+- SCRAM passwords (and the Backstage/Konnect secrets) are placeholders (`REPLACE_ME`).
+  For real use, generate them and store via Sealed Secrets or External Secrets — never
+  commit plaintext. [`docs/secrets.md`](docs/secrets.md) shows worked manifests for both.
 - The `platform/` Kafka + Event Gateway manifests are adapted from the
   `kong-event-gw-kubernetes` reference.
 

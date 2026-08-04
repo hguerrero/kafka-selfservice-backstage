@@ -37,7 +37,7 @@ kubectl wait kafka/northwind --for=condition=Ready --timeout=300s -n kafka || tr
 
 echo
 echo "Platform up. Next:"
-echo "  1) Install Argo CD and apply gitops/argocd/*.yaml (edit repoURL first), OR"
-echo "     apply the example tenant directly: kubectl apply -k gitops/apps/fraud-analytics/kong/"
+echo "  1) In the kafka-selfservice-gitops repo: apply argocd/*.yaml (edit repoURLs first), OR"
+echo "     apply the example tenant directly: kubectl apply -k ../kafka-selfservice-gitops/apps/fraud-analytics/kong/"
 echo "  2) minikube tunnel   (so *.127-0-0-1.sslip.io resolves to the Gateway)"
 echo "  3) Test with examples/kafka-client/"

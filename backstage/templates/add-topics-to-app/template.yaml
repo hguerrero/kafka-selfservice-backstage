@@ -76,8 +76,9 @@ spec:
       required: [repoUrl]
       properties:
         repoUrl:
-          title: GitOps repository
+          title: GitOps config repository
           type: string
+          description: The kafka-selfservice-gitops repo (Argo CD watches its apps/*).
           ui:field: RepoUrlPicker
           ui:options:
             allowedHosts:
@@ -89,7 +90,7 @@ spec:
       action: fetch:template
       input:
         url: ./skeleton
-        targetPath: gitops/apps/${{ parameters.appName }}
+        targetPath: apps/${{ parameters.appName }}
         values:
           appName: ${{ parameters.appName }}
           businessUnit: ${{ parameters.businessUnit }}

@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - "platform/**"
-      - "gitops/**"
       - "catalog/**"
       - "backstage/**"
   push:
@@ -21,7 +20,7 @@ jobs:
           pip install yamllint
           # Skeletons contain Nunjucks (${{ ... }}) and are not valid YAML on their own.
           yamllint -d relaxed \
-            $(git ls-files 'platform/**/*.yaml' 'gitops/**/*.yaml' 'catalog/**/*.yaml') || true
+            $(git ls-files 'platform/**/*.yaml' 'catalog/**/*.yaml') || true
 
       - name: Validate rendered manifests against Kubernetes + CRD schemas
         run: |
@@ -29,8 +28,7 @@ jobs:
           # -ignore-missing-schemas because Kong Operator / Strimzi CRDs aren't in the
           # default schema set. For strict CRD validation, add -schema-location pointing
           # at your extracted CRD OpenAPI schemas.
-          ./kubeconform -ignore-missing-schemas -summary \
-            platform gitops/apps
+          ./kubeconform -ignore-missing-schemas -summary platform
 
   asyncapi:
     runs-on: ubuntu-latest

@@ -30,8 +30,9 @@ This repo's `platform/networking/tls-certificate.yaml` then creates a self-signe
 
 ## 2. Argo CD
 
-Drives GitOps: it reconciles `platform/` and auto-onboards each tenant under
-`gitops/apps/*` via the ApplicationSet.
+Drives GitOps: it reconciles this repo's `platform/` and auto-onboards each tenant
+from the companion `kafka-selfservice-gitops` repo's `apps/*` via the ApplicationSet.
+See [`repositories.md`](repositories.md) for the two-repo layout.
 
 ```bash
 kubectl create namespace argocd
@@ -52,16 +53,17 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
 
-Then point Argo CD at your fork and let it manage everything:
+Then apply the Argo manifests **from the `kafka-selfservice-gitops` repo** and let it
+manage everything:
 
 ```bash
-# Edit the repoURL in these files first, then:
-kubectl apply -f gitops/argocd/platform-app.yaml     # reconciles platform/
-kubectl apply -f gitops/argocd/tenants-appset.yaml   # one App per gitops/apps/*
+# In your clone of kafka-selfservice-gitops (edit the repoURLs in these files first):
+kubectl apply -f argocd/platform-app.yaml     # reconciles the portal repo's platform/
+kubectl apply -f argocd/tenants-appset.yaml   # one App per apps/* in the config repo
 ```
 
-If you're not using Argo CD, apply the platform and tenants directly instead:
-`kubectl apply -k platform/` and `kubectl apply -k gitops/apps/<app>/kong/`.
+If you're not using Argo CD, apply directly instead: `kubectl apply -k platform/`
+(portal repo) and `kubectl apply -k apps/<app>/kong/` (config repo).
 
 ## 3. Backstage (in-cluster)
 
@@ -115,8 +117,9 @@ Edit two files in `platform/backstage/`:
 
 - `backstage-secrets.yaml` — set `POSTGRES_PASSWORD`, `GITHUB_TOKEN` (PAT/App token
   with `repo` + PR scope, since the templates open pull requests), and
-  `BACKEND_SECRET` (`openssl rand -base64 32`). Use SealedSecrets / External Secrets
-  for anything real — don't commit plaintext.
+  `BACKEND_SECRET` (`openssl rand -base64 32`). The stub is plaintext for the demo;
+  for anything real, replace it with a Sealed Secret or External Secret —
+  [`docs/secrets.md`](secrets.md) has worked manifests for both.
 - `app-config.configmap.yaml` — point `catalog.locations[].target` at your fork's
   `catalog-info.yaml`. This is what the in-cluster app reads (it replaces
   `backstage/app-config.snippet.yaml`, which remains as a reference for the config
