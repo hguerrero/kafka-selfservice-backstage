@@ -1,0 +1,40 @@
+---
+# HTTPRoute - exposes the Argo CD UI/API through the shared Kong Gateway (kong-keg),
+# on the same "web" HTTP listener as Backstage. Use this instead of
+# `kubectl port-forward svc/argocd-server`.
+#
+# The route lives in the argocd namespace (same as the argocd-server Service, so no
+# ReferenceGrant is needed) and attaches cross-namespace to the Gateway in the kong
+# namespace, which the "web" listener allows via `allowedRoutes.namespaces.from: All`.
+#
+# Requires argocd-server to serve plain HTTP (see argocd-cmd-params-cm.yaml), because
+# the gateway forwards HTTP; otherwise Argo CD's HTTPS redirect causes a loop.
+#
+# Access: with `minikube tunnel` running, http://argocd.127-0-0-1.sslip.io
+# resolves to 127.0.0.1 -> Kong :80 -> argocd-server :80.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-server
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: kafka-selfservice-platform
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: kong-keg
+      namespace: kong
+      sectionName: web
+  hostnames:
+    - argocd.127-0-0-1.sslip.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: argocd-server
+          port: 80

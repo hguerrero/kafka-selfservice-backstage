@@ -1,0 +1,22 @@
+---
+# Puts argocd-server in insecure (plain HTTP) mode so it can sit behind the Kong
+# Gateway HTTP listener without an HTTPS redirect loop. TLS is terminated at / handled
+# by the gateway edge; for a real deployment, add TLS on the gateway listener.
+#
+# This ConfigMap name is shipped (empty) by the upstream Argo CD install; here we set
+# the one key we need. It is applied by the platform Argo CD Application along with the
+# rest of platform/.
+#
+# IMPORTANT: argocd-server reads this at startup, so restart it once after this is
+# applied the first time:
+#   kubectl -n argocd rollout restart deployment/argocd-server
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-cmd-params-cm
+    app.kubernetes.io/part-of: argocd
+data:
+  server.insecure: "true"

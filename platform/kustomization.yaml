@@ -25,3 +25,8 @@ resources:
   - networking/tls-certificate.yaml
   - kafka/kafka-cluster.yaml
   - kafka/topics.yaml
+  # Expose the Argo CD UI through the Kong Gateway (argocd.127-0-0-1.sslip.io)
+  # instead of `kubectl port-forward`. Requires Argo CD to be installed already
+  # (the argocd namespace + argocd-server Service must exist).
+  - argocd/argocd-cmd-params-cm.yaml
+  - argocd/httproute.yaml

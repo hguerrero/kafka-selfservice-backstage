@@ -39,8 +39,9 @@ Operator** on Kubernetes.
 │   └── app-config.snippet.yaml     # how to wire this into your Backstage
 ├── platform/                # "Deliver everything" bootstrap (applied once)
 │   ├── event-gateway/       #   Konnect CP, backend cluster, listener, KNEP data plane
-│   ├── networking/          #   GatewayClass/Config, Gateway, TLS cert
+│   ├── networking/          #   GatewayClass/Config, Gateway (Kafka + web listeners), TLS cert
 │   ├── backstage/           #   in-cluster Backstage: Deployment, Service, Postgres, config
+│   ├── argocd/              #   Argo CD route through the Kong Gateway (+ insecure mode)
 │   └── kafka/               #   Strimzi Kafka cluster + topics
 ├── examples/kafka-client/   # SCRAM client config + test commands
 ├── scripts/                 # bootstrap, cert, validate
@@ -116,6 +117,10 @@ kubectl apply -k ../kafka-selfservice-gitops/apps/fraud-analytics/kong/
 
 # 3) Expose the gateway locally and test
 minikube tunnel &
+# UIs are routed through the Kong Gateway (no port-forward):
+#   Backstage -> http://backstage.127-0-0-1.sslip.io
+#   Argo CD   -> http://argocd.127-0-0-1.sslip.io
+#   (first time only: kubectl -n argocd rollout restart deployment/argocd-server)
 cat examples/kafka-client/test-commands.md
 ```
 

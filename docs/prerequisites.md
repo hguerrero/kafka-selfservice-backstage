@@ -44,14 +44,26 @@ kubectl wait --for=condition=Available --timeout=300s \
   -n argocd deployment/argocd-server deployment/argocd-applicationset-controller
 ```
 
-Access the UI and get the initial admin password:
+Get the initial admin password:
 
 ```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:443
 # user: admin
 kubectl -n argocd get secret argocd-initial-admin-secret \
   -o jsonpath='{.data.password}' | base64 -d; echo
 ```
+
+The platform bundle ships an **Argo CD route** through the Kong Gateway
+(`platform/argocd/`), so once the platform is applied you reach the UI at
+`http://argocd.127-0-0-1.sslip.io` (with `minikube tunnel` running) — no port-forward.
+That route sets argocd-server to insecure (plain HTTP) mode, which needs a one-time
+restart the first time it's applied:
+
+```bash
+kubectl -n argocd rollout restart deployment/argocd-server
+```
+
+Before the route exists (e.g. first login), you can still port-forward:
+`kubectl -n argocd port-forward svc/argocd-server 8080:443`.
 
 Then apply the Argo manifests **from the `kafka-selfservice-gitops` repo** and let it
 manage everything:

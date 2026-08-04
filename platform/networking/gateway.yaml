@@ -59,14 +59,15 @@ spec:
         kinds:
           - group: gateway.networking.k8s.io
             kind: TLSRoute
-    # HTTP listener for web UIs (Backstage). Kept on the same Kong data plane as the
-    # Kafka listener. `from: All` lets the Backstage HTTPRoute (in the backstage
-    # namespace) attach to this Gateway - cross-namespace parentRef attachment is
-    # governed here, no ReferenceGrant needed because the route's backend is local.
+    # HTTP listener for web UIs on the same Kong data plane as the Kafka listener.
+    # The wildcard hostname lets several UIs attach by their own host - each HTTPRoute
+    # picks a concrete name (backstage.127-0-0-1.sslip.io, argocd.127-0-0-1.sslip.io).
+    # `from: All` allows HTTPRoutes from other namespaces (backstage, argocd) to attach
+    # cross-namespace; no ReferenceGrant is needed because each route's backend is local.
     - name: web
       protocol: HTTP
       port: 80
-      hostname: "backstage.127-0-0-1.sslip.io"
+      hostname: "*.127-0-0-1.sslip.io"
       allowedRoutes:
         namespaces:
           from: All
