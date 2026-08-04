@@ -19,9 +19,8 @@ metadata:
 spec:
   secretName: keg-tls-secret
   secretTemplate:
-    metadata:
-      labels:
-        konghq.com/secret: "true"
+    labels:
+      konghq.com/secret: "true"
   issuerRef:
     name: keg-selfsigned
     kind: Issuer
