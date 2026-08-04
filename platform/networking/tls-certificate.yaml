@@ -18,10 +18,14 @@ metadata:
   namespace: kong
 spec:
   secretName: keg-tls-secret
-  duration: 8760h   # 1 year
+  secretTemplate:
+    metadata:
+      labels:
+        konghq.com/secret: "true"
   issuerRef:
     name: keg-selfsigned
     kind: Issuer
+  duration: 8760h   # 1 year
   commonName: 127-0-0-1.sslip.io
   dnsNames:
     # One wildcard covers every current and future virtual cluster host,
