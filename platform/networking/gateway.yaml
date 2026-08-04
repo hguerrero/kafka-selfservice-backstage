@@ -60,14 +60,16 @@ spec:
           - group: gateway.networking.k8s.io
             kind: TLSRoute
     # HTTP listener for web UIs on the same Kong data plane as the Kafka listener.
-    # The wildcard hostname lets several UIs attach by their own host - each HTTPRoute
-    # picks a concrete name (backstage.127-0-0-1.sslip.io, argocd.127-0-0-1.sslip.io).
+    # No hostname is set on purpose: giving it the same "*.127-0-0-1.sslip.io" wildcard
+    # as the kafka-tls listener makes Kong report a listener HostnameConflict (it treats
+    # an identical hostname string across listeners as a conflict, even on a different
+    # port). With the hostname omitted, this listener accepts any Host and each HTTPRoute
+    # (backstage.127-0-0-1.sslip.io, argocd.127-0-0-1.sslip.io) restricts to its own name.
     # `from: All` allows HTTPRoutes from other namespaces (backstage, argocd) to attach
     # cross-namespace; no ReferenceGrant is needed because each route's backend is local.
     - name: web
       protocol: HTTP
       port: 80
-      hostname: "*.127-0-0-1.sslip.io"
       allowedRoutes:
         namespaces:
           from: All
