@@ -3,7 +3,7 @@
 A runnable demo of **developer self-service for Apache Kafka**. Application teams
 discover available topics in Backstage (published as AsyncAPI), then use a scaffolder
 template to request access. Behind the form, Kong Event Gateway gets a dedicated
-**virtual cluster** for the app, **SCRAM (or OAuth) credentials**, and **ACLs** scoped
+**virtual cluster** for the app, **credentials (SASL username + password, or OAuth)**, and **ACLs** scoped
 to exactly the topics requested — delivered via GitOps and reconciled by the **Kong
 Operator** on Kubernetes.
 
@@ -43,7 +43,7 @@ Operator** on Kubernetes.
 │   ├── backstage/           #   in-cluster Backstage: Deployment, Service, Postgres, config
 │   ├── argocd/              #   Argo CD route through the Kong Gateway (+ insecure mode)
 │   └── kafka/               #   Strimzi Kafka cluster + topics
-├── examples/kafka-client/   # SCRAM client config + test commands
+├── examples/kafka-client/   # SASL/PLAIN client config + test commands
 ├── scripts/                 # bootstrap, cert, validate
 └── docs/                    # architecture, flows, prerequisites, secrets, repositories
 ```
@@ -131,9 +131,9 @@ repo's `catalog-info.yaml` (see `platform/backstage/app-config.configmap.yaml`).
 
 1. A developer opens the **Retail Banking NY** or **Wealth Management LA** API in the
    Backstage catalog and reads the AsyncAPI channels (topics).
-2. They run **Consume Kafka Topics**, name their app, pick topics, and choose SCRAM or
-   OAuth. Backstage opens a PR adding `apps/<app>/` to the `kafka-selfservice-gitops`
-   repo.
+2. They run **Consume Kafka Topics**, name their app, pick topics, and choose
+   SASL/PLAIN or OAuth. Backstage opens a PR adding `apps/<app>/` to the
+   `kafka-selfservice-gitops` repo.
 3. On merge, Argo CD + Kong Operator provision the virtual cluster, credentials, ACLs
    and route. The app connects to `bootstrap.<app>.127-0-0-1.sslip.io:9092`.
 4. Need more topics later? **Add Topics to Application** changes only the ACL policy.
@@ -149,14 +149,18 @@ See [`docs/flows.md`](docs/flows.md) for sequence diagrams and
 
 ## Notes & caveats
 
-- Kong Operator CRD field names for Event Gateway are evolving. The virtual cluster
-  `apiSpec` mirrors the Konnect / `kongctl` schema. Two spots to confirm against the
-  CRDs in *your* operator version: the SCRAM principal **password secret-ref** shape,
-  and whether ACLs are a separate `EventGatewayVirtualClusterPolicy` or inline on the
-  virtual cluster (`spec.apiSpec.clusterPolicies`). Both are called out in comments.
-- SCRAM passwords (and the Backstage/Konnect secrets) are placeholders (`REPLACE_ME`).
-  For real use, generate them and store via Sealed Secrets or External Secrets — never
-  commit plaintext. [`docs/secrets.md`](docs/secrets.md) shows worked manifests for both.
+- Auth mechanism: the Kong Operator CRD's `saslScram` type does **not** accept inline
+  username/password (it only carries `algorithm` and resolves principals via Kong
+  Identity). So the self-contained "issue a user + password, validated and terminated
+  at the gateway" model uses **`saslPlain`** (`type: saslPlain` + a sibling `saslPlain`
+  object with `mediation: terminate` and `principals[]`). Native SCRAM or OAuth via
+  Kong Identity is the enterprise path. Auth and ACL manifests match the installed CRD
+  schema (`configuration.konghq.com/v1alpha1`): auth is a discriminated union, and ACL
+  rules use `resourceType` / `operations: [{name}]` / `resourceNames: {type: stat, stat: [{match}]}`.
+- Credentials (and the Backstage/Konnect secrets) are placeholders (`REPLACE_ME`).
+  For real use, use a secret-template / Konnect vault reference for the SASL password,
+  and store Kubernetes secrets via Sealed Secrets or External Secrets — never commit
+  plaintext. [`docs/secrets.md`](docs/secrets.md) shows worked manifests.
 - The `platform/` Kafka + Event Gateway manifests are adapted from the
   `kong-event-gw-kubernetes` reference.
 

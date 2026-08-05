@@ -26,7 +26,7 @@ servers:
         description: Your provisioned application (virtual cluster) name.
         default: your-app
     security:
-      - $ref: "#/components/securitySchemes/scram"
+      - $ref: "#/components/securitySchemes/saslPlain"
 channels:
   advisor.daily-client-activity.v1:
     address: advisor.daily-client-activity.v1
@@ -72,9 +72,9 @@ operations:
       $ref: "#/channels/infosec.security.fraud.risk-scores.v3"
 components:
   securitySchemes:
-    scram:
-      type: scramSha256
-      description: SASL/SCRAM-SHA-256 over TLS. Credentials are issued per application.
+    saslPlain:
+      type: plain
+      description: SASL/PLAIN over TLS. Credentials are issued per application and terminated at the gateway.
   messages:
     AdvisorActivity:
       name: AdvisorActivity

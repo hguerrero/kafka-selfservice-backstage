@@ -9,4 +9,3 @@ resources:
   - virtual-cluster.yaml
   - acl-policy.yaml
   - tlsroute.yaml
-  - scram-credentials.yaml

@@ -9,12 +9,17 @@ a secret (External Secrets). Both produce, in-cluster, exactly the same Kubernet
 | Secret | Namespace | Keys | Consumed by |
 |--------|-----------|------|-------------|
 | `backstage-secrets` | `backstage` | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `GITHUB_TOKEN`, `BACKEND_SECRET` | Backstage Deployment + Postgres |
-| `<app>-kafka-scram` | `kong` | `username`, `password` | Virtual cluster SCRAM principal |
 | `konnect-api-auth-secret` | `kong` | `token` | Kong Operator → Konnect |
 
 The name/namespace/keys must match what the manifests reference — only *how* the
-values arrive changes. Delete the stub `backstage-secrets.yaml` (and the SCRAM stub)
-from the kustomization when you adopt one of these.
+values arrive changes. Delete the stub `backstage-secrets.yaml` from the kustomization
+when you adopt one of these.
+
+> The virtual cluster's SASL/PLAIN password is **not** a Kubernetes Secret — it lives
+> in the `EventGatewayVirtualCluster` config (pushed to Konnect by the operator), so a
+> K8s secret store wouldn't be read for it. For real use, replace the inline
+> `password:` literal with a secret-template expression / Konnect vault reference
+> rather than a Sealed/External Secret.
 
 ---
 
@@ -76,9 +81,9 @@ in `platform/backstage/kustomization.yaml`.
 > so it can't be renamed or moved without re-sealing. Rotating a value = re-run the
 > `kubeseal` pipeline and commit the new ciphertext.
 
-Same pattern for the SCRAM and Konnect secrets, just change name/namespace/keys —
-e.g. `kubectl create secret generic fraud-analytics-kafka-scram -n kong
---from-literal=username=fraud-analytics --from-literal=password=... | kubeseal ...`.
+Same pattern for the Konnect secret, just change name/namespace/keys —
+e.g. `kubectl create secret generic konnect-api-auth-secret -n kong
+--from-literal=token=... | kubeseal ...`.
 
 ---
 
@@ -148,10 +153,9 @@ spec:
 ```
 
 Commit the `SecretStore` + `ExternalSecret` (no secret values in them) and drop the
-stub `backstage-secrets.yaml` from the kustomization. For the Kafka SCRAM and Konnect
-secrets, add analogous `ExternalSecret`s in the `kong` namespace with a store that
-resolves in that namespace (or a `ClusterSecretStore`), targeting `<app>-kafka-scram`
-and `konnect-api-auth-secret`.
+stub `backstage-secrets.yaml` from the kustomization. For the Konnect secret, add an
+analogous `ExternalSecret` in the `kong` namespace with a store that resolves in that
+namespace (or a `ClusterSecretStore`), targeting `konnect-api-auth-secret`.
 
 > Rotation is automatic: change the value in the store and ESO refreshes the Secret
 > on the next `refreshInterval`. Restarting the consuming pod may still be needed for

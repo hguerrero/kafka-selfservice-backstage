@@ -1,8 +1,8 @@
 # Testing access as fraud-analytics
 
 Prereqs: platform is up, the `fraud-analytics` tenant is applied, `minikube tunnel`
-is running, and you've set the real SCRAM password in both the Secret and the
-client properties.
+is running, and the SASL/PLAIN password matches in both the virtual cluster
+(`apps/fraud-analytics/kong/virtual-cluster.yaml`) and the client properties.
 
 ## List topics (should show only the two granted logical names)
 

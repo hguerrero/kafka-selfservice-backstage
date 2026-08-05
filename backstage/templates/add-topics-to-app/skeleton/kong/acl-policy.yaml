@@ -25,18 +25,22 @@ spec:
       config:
         rules:
           - action: allow
-            resource_type: topic
+            resourceType: topic
             operations:
               - name: describe
               - name: read
-            resource_names:
-            {%- for topic in values.topics %}
-              - match: "${{ topic }}"
-            {%- endfor %}
+            resourceNames:
+              type: stat
+              stat:
+              {%- for topic in values.topics %}
+                - match: "${{ topic }}"
+              {%- endfor %}
           - action: allow
-            resource_type: group
+            resourceType: group
             operations:
               - name: describe
               - name: read
-            resource_names:
-              - match: "${{ values.appName }}.*"
+            resourceNames:
+              type: stat
+              stat:
+                - match: "${{ values.appName }}.*"

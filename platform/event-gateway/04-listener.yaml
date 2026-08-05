@@ -21,7 +21,7 @@ spec:
 ---
 # EventGatewayListenerPolicy - TLS Server
 # Terminates TLS on the listener using the wildcard cert in keg-tls-secret.
-# Plaintext is rejected, so SASL/SCRAM always runs over TLS (SASL_SSL).
+# Plaintext is rejected, so SASL/PLAIN always runs over TLS (SASL_SSL).
 #
 # Create the secret via cert-manager (see platform/networking) or manually:
 #   openssl req -x509 -nodes -days 365 -newkey rsa:2048 \

@@ -9,7 +9,7 @@ info:
     below are exactly what clients use.
 
     To consume any of these channels, use the **Consume Kafka Topics** self-service
-    template in Backstage. It provisions a virtual cluster, SCRAM (or OAuth)
+    template in Backstage. It provisions a virtual cluster, SASL (or OAuth)
     credentials, and ACLs scoped to the channels you select.
   contact:
     name: Retail Banking NY Platform Team
@@ -29,7 +29,7 @@ servers:
         description: Your provisioned application (virtual cluster) name.
         default: your-app
     security:
-      - $ref: "#/components/securitySchemes/scram"
+      - $ref: "#/components/securitySchemes/saslPlain"
     bindings:
       kafka:
         schemaRegistryUrl: ""
@@ -76,9 +76,9 @@ operations:
       $ref: "#/channels/core.accounts.status.v2"
 components:
   securitySchemes:
-    scram:
-      type: scramSha256
-      description: SASL/SCRAM-SHA-256 over TLS. Credentials are issued per application.
+    saslPlain:
+      type: plain
+      description: SASL/PLAIN over TLS. Credentials are issued per application and terminated at the gateway.
   messages:
     CardDispatched:
       name: CardDispatched

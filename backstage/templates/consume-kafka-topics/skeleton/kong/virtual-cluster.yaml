@@ -5,6 +5,8 @@
 # - the "${{ values.namespacePrefix }}" broker prefix is hidden from the client
 # - aclMode: enforce_on_gateway -> principals start with NO access; the ACL policy
 #   in acl-policy.yaml grants read on exactly the requested topics.
+#
+# Auth is a discriminated union: `type: <x>` + a sibling object named `<x>`.
 apiVersion: configuration.konghq.com/v1alpha1
 kind: EventGatewayVirtualCluster
 metadata:
@@ -26,33 +28,32 @@ spec:
       prefix: "${{ values.namespacePrefix }}"
       mode: hide_prefix
     authentication:
-    {%- if values.authMode == "scram" %}
-      # SASL/SCRAM-SHA-256, terminated at the gateway: the credential is validated
-      # here and never forwarded to Kafka. The password lives in the Secret rendered
-      # in scram-credentials.yaml.
-      # NOTE: the exact password secret-ref shape is operator-version dependent -
-      # confirm against your installed EventGatewayVirtualCluster CRD. If your
-      # version only accepts inline principals, copy the password value in directly.
-      - type: sasl_scram
-        mediation: terminate
-        mechanism: SCRAM-SHA-256
-        principals:
-          - username: ${{ values.appName }}
-            password:
-              type: secretRef
-              secretRef:
-                name: ${{ values.appName }}-kafka-scram
-                key: password
-    {%- else %}
+    {%- if values.authMode == "oauth" %}
       # OAuth / OIDC: client presents a bearer token; the gateway verifies it against
       # the configured auth server (e.g. Kong Identity). The ACL condition in
-      # acl-policy.yaml matches on the token's principal/subject claim.
+      # acl-policy.yaml matches on the token principal/subject claim.
       # See: https://developer.konghq.com/how-to/event-gateway/kong-identity-oauth/
-      - type: oauth
-        mediation: terminate
-        oauth:
-          # Replace with your issuer / JWKS endpoint (Kong Identity or external IdP).
-          issuer: https://<your-kong-identity-issuer>
-          # The subject/client id that identifies this application in tokens.
-          audience: ${{ values.appName }}
+      - type: oauthBearer
+        oauthBearer:
+          mediation: terminate
+          jwks:
+            # Replace with your issuer's JWKS endpoint (Kong Identity or external IdP).
+            endpoint: https://<your-issuer>/.well-known/jwks.json
+          validate:
+            issuer: https://<your-issuer>
+            audiences:
+              - name: ${{ values.appName }}
+    {%- else %}
+      # SASL/PLAIN, terminated at the gateway: the username + password are validated
+      # here and never forwarded to Kafka. (The CRD's saslScram type does not accept
+      # inline credentials - it needs Kong Identity - so saslPlain is used for the
+      # self-contained "issue a user + password" model.)
+      - type: saslPlain
+        saslPlain:
+          mediation: terminate
+          principals:
+            # Demo uses an inline password. In production use a secret-template
+            # expression / Konnect vault reference instead of a literal value.
+            - username: ${{ values.appName }}
+              password: "REPLACE_ME"
     {%- endif %}

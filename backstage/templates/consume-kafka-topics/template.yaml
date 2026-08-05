@@ -7,9 +7,10 @@ metadata:
   description: |
     Request self-service access to Northwind Financial Kafka topics through Kong
     Event Gateway. Provisions a dedicated virtual cluster for your application,
-    issues SCRAM (or OAuth) credentials, and creates ACLs scoped to exactly the
-    topics you select. Changes are delivered as a GitOps pull request; on merge,
-    Kong Operator reconciles the control plane, data plane and access rules.
+    issues credentials (SASL/PLAIN username + password, or OAuth), and creates ACLs
+    scoped to exactly the topics you select. Changes are delivered as a GitOps pull
+    request; on merge, Kong Operator reconciles the control plane, data plane and
+    access rules.
   tags:
     - kafka
     - event-gateway
@@ -60,10 +61,10 @@ spec:
         authMode:
           title: Authentication
           type: string
-          default: scram
-          enum: [scram, oauth]
+          default: plain
+          enum: [plain, oauth]
           enumNames:
-            - SASL/SCRAM-SHA-256 (username + password)
+            - SASL/PLAIN (username + password, terminated at the gateway)
             - OAuth / OIDC (bearer token via Kong Identity)
       dependencies:
         businessUnit:

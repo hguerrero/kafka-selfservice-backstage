@@ -17,13 +17,13 @@ sequenceDiagram
   participant Argo as Argo CD
   participant KO as Kong Operator
   participant KEG as Event Gateway
-  Dev->>BS: Pick provider + topics + auth (SCRAM)
+  Dev->>BS: Pick provider + topics + auth (SASL/PLAIN)
   BS->>Git: PR adds apps/<app>/ to config repo (VC, ACL, TLSRoute, Secret)
   Dev->>Git: Review + merge
   Git->>Argo: ApplicationSet detects new tenant dir
   Argo->>KO: Apply CRDs
   KO->>KEG: Create virtual cluster, principal, ACLs, route
-  Dev->>KEG: Connect (SASL_SSL/SCRAM) and consume
+  Dev->>KEG: Connect (SASL_SSL/PLAIN) and consume
 ```
 
 What "deliver everything" covers:

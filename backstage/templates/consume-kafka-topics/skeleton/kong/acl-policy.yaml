@@ -4,15 +4,13 @@
 # topics plus its own consumer groups. Everything else is denied because the virtual
 # cluster runs in enforce_on_gateway mode.
 #
-# THIS IS THE FILE YOU EDIT LATER. To grant access to more topics, add them to the
-# "Add topics" self-service template (or append resource_names below) - nothing else
-# about the application changes.
+# THIS IS THE FILE YOU EDIT LATER. To grant more topics, re-run "Add Topics to
+# Application" (or add entries under resourceNames.stat below) - nothing else about
+# the application changes.
 #
-# NOTE on the CRD kind: this follows the same reference pattern as the
-# EventGatewayVirtualClusterConsumePolicy / ...ProducePolicy CRDs. Depending on your
-# Kong Operator version, ACLs may instead be expressed inline on the
-# EventGatewayVirtualCluster (spec.apiSpec.clusterPolicies) using the identical
-# config below. Verify against your installed CRDs and move the block if needed.
+# CRD schema: rule fields are camelCase (`resourceType`, `resourceNames`);
+# `operations` is a list of `{name: <op>}`; `resourceNames` is one object with a
+# `type: stat` discriminator whose `stat` is a list of `{match: <glob>}`.
 apiVersion: configuration.konghq.com/v1alpha1
 kind: EventGatewayVirtualClusterPolicy
 metadata:
@@ -36,19 +34,23 @@ spec:
       config:
         rules:
           - action: allow
-            resource_type: topic
+            resourceType: topic
             operations:
               - name: describe
               - name: read
-            resource_names:
-            {%- for topic in values.topics %}
-              - match: "${{ topic }}"
-            {%- endfor %}
+            resourceNames:
+              type: stat
+              stat:
+              {%- for topic in values.topics %}
+                - match: "${{ topic }}"
+              {%- endfor %}
           - action: allow
-            resource_type: group
+            resourceType: group
             operations:
               - name: describe
               - name: read
-            resource_names:
-              # This app may only use consumer groups it prefixes with its own name.
-              - match: "${{ values.appName }}.*"
+            resourceNames:
+              type: stat
+              stat:
+                # This app may only use consumer groups it prefixes with its own name.
+                - match: "${{ values.appName }}.*"
