@@ -153,18 +153,14 @@ spec:
 
           Merging provisions a virtual cluster, credentials and ACLs via Kong Operator.
 
-    - id: register
-      name: Register application in catalog
-      action: catalog:register
-      input:
-        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
-        catalogInfoPath: /apps/${{ parameters.appName }}/catalog-info.yaml
-        optional: true
+  # No catalog:register step: this is a PR-based GitOps flow, so the app's
+  # catalog-info.yaml doesn't exist on the main branch until the PR is merged.
+  # Registering here would fail (and `publish:github:pull-request` doesn't emit
+  # repoContentsUrl anyway). The Component is picked up after merge - either by a
+  # catalog discovery Location that scans the config repo's apps/*/catalog-info.yaml,
+  # or by registering it once manually via Create -> Register Existing Component.
 
   output:
     links:
-      - title: GitOps pull request
+      - title: Open the GitOps pull request
         url: ${{ steps.publish.output.remoteUrl }}
-      - title: Open in catalog
-        icon: catalog
-        entityRef: ${{ steps.register.output.entityRef }}
