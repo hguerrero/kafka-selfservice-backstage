@@ -59,17 +59,27 @@ spec:
         kinds:
           - group: gateway.networking.k8s.io
             kind: TLSRoute
-    # HTTP listener for web UIs on the same Kong data plane as the Kafka listener.
+    # HTTPS listener for web UIs (Backstage, Argo CD) on the same Kong data plane.
+    # TLS is TERMINATED here using the wildcard keg-tls-secret (*.127-0-0-1.sslip.io,
+    # which covers backstage.* and argocd.*). HTTPS is REQUIRED, not cosmetic:
+    # browsers only expose the Web Crypto API (crypto.randomUUID / subtle) in a secure
+    # context, and Backstage crashes without it when served over plain http on a
+    # non-localhost host.
+    #
     # No hostname is set on purpose: giving it the same "*.127-0-0-1.sslip.io" wildcard
-    # as the kafka-tls listener makes Kong report a listener HostnameConflict (it treats
-    # an identical hostname string across listeners as a conflict, even on a different
-    # port). With the hostname omitted, this listener accepts any Host and each HTTPRoute
-    # (backstage.127-0-0-1.sslip.io, argocd.127-0-0-1.sslip.io) restricts to its own name.
-    # `from: All` allows HTTPRoutes from other namespaces (backstage, argocd) to attach
-    # cross-namespace; no ReferenceGrant is needed because each route's backend is local.
+    # as the kafka-tls listener triggers a Kong listener HostnameConflict (identical
+    # hostname string across listeners). With the hostname omitted the cert's SNI still
+    # matches, and each HTTPRoute restricts to its own host. `from: All` lets HTTPRoutes
+    # in other namespaces (backstage, argocd) attach cross-namespace.
     - name: web
-      protocol: HTTP
-      port: 80
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: keg-tls-secret
       allowedRoutes:
         namespaces:
           from: All
