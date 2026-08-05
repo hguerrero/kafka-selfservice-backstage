@@ -7,8 +7,9 @@
 # ReferenceGrant is needed) and attaches cross-namespace to the Gateway in the kong
 # namespace, which the "web" listener allows via `allowedRoutes.namespaces.from: All`.
 #
-# Access: with `minikube tunnel` running, http://backstage.127-0-0-1.sslip.io
-# resolves to 127.0.0.1 -> Kong :80 -> Backstage :7007.
+# Access: with `minikube tunnel` running, https://backstage.127-0-0-1.sslip.io
+# resolves to 127.0.0.1 -> Kong :443 (TLS terminated) -> Backstage :7007.
+# HTTPS is required so the browser exposes the Web Crypto API Backstage depends on.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

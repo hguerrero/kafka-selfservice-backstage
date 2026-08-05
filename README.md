@@ -95,8 +95,8 @@ docker push your-registry/backstage:latest   # or: minikube image load ...
 #    (edit platform/backstage/deployment.yaml image, backstage-secrets.yaml,
 #     and the catalog location in app-config.configmap.yaml)
 kubectl apply -k platform/backstage/
-# exposed through the same Kong Gateway (web listener + HTTPRoute); with minikube tunnel:
-#   http://backstage.127-0-0-1.sslip.io
+# exposed over HTTPS through the same Kong Gateway (web listener + HTTPRoute);
+# with minikube tunnel: https://backstage.127-0-0-1.sslip.io (accept the self-signed cert)
 ```
 
 Kong Operator + Strimzi install commands (and the AsyncAPI page wiring) are also in
@@ -117,9 +117,9 @@ kubectl apply -k ../kafka-selfservice-gitops/apps/fraud-analytics/kong/
 
 # 3) Expose the gateway locally and test
 minikube tunnel &
-# UIs are routed through the Kong Gateway (no port-forward):
-#   Backstage -> http://backstage.127-0-0-1.sslip.io
-#   Argo CD   -> http://argocd.127-0-0-1.sslip.io
+# UIs are routed over HTTPS through the Kong Gateway (self-signed cert, accept warning):
+#   Backstage -> https://backstage.127-0-0-1.sslip.io
+#   Argo CD   -> https://argocd.127-0-0-1.sslip.io
 #   (first time only: kubectl -n argocd rollout restart deployment/argocd-server)
 cat examples/kafka-client/test-commands.md
 ```

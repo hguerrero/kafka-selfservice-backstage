@@ -10,11 +10,14 @@ metadata:
 data:
   app-config.production.yaml: |
     app:
-      # Exposed through the Kong Gateway "web" listener (see httproute.yaml).
-      # For plain `kubectl port-forward` access instead, set both to http://localhost:7007.
-      baseUrl: http://backstage.127-0-0-1.sslip.io
+      # HTTPS through the Kong Gateway "web" listener (TLS terminated there). HTTPS is
+      # required: Backstage uses the Web Crypto API, which browsers only expose in a
+      # secure context (https, or localhost). Plain http on this host -> app crash.
+      # Alternative for a quick local run without TLS: port-forward and set both URLs to
+      # http://localhost:7007 (localhost counts as a secure context).
+      baseUrl: https://backstage.127-0-0-1.sslip.io
     backend:
-      baseUrl: http://backstage.127-0-0-1.sslip.io
+      baseUrl: https://backstage.127-0-0-1.sslip.io
       listen:
         host: 0.0.0.0
         port: 7007
@@ -22,7 +25,7 @@ data:
         keys:
           - secret: ${BACKEND_SECRET}
       cors:
-        origin: http://backstage.127-0-0-1.sslip.io
+        origin: https://backstage.127-0-0-1.sslip.io
       database:
         client: pg
         connection:
@@ -30,6 +33,18 @@ data:
           port: 5432
           user: ${POSTGRES_USER}
           password: ${POSTGRES_PASSWORD}
+
+    # The scaffolded app uses guest sign-in, which is normally DEV-ONLY. The image runs
+    # with NODE_ENV=production, so guest must be explicitly allowed or the app renders
+    # a blank shell (loads index.html/title, then fails to get an identity). For a demo
+    # this is fine; for real use, replace guest with a proper auth provider + resolver.
+    # Your frontend must also render a guest SignInPage, e.g. in packages/app/src/App.tsx:
+    #   components: { SignInPage: props => <SignInPage {...props} auto providers={['guest']} /> }
+    auth:
+      environment: production
+      providers:
+        guest:
+          dangerouslyAllowOutsideDevelopment: true
 
     integrations:
       github:
@@ -41,6 +56,6 @@ data:
         - allow: [Component, System, API, Domain, Group, User, Location, Template]
       locations:
         - type: url
-          target: https://github.com/your-org/kafka-selfservice-backstage/blob/main/catalog-info.yaml
+          target: https://github.com/hguerrero/kafka-selfservice-backstage/blob/main/catalog-info.yaml
           rules:
             - allow: [API, System, Domain, Group, User, Location, Template]

@@ -54,9 +54,10 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 
 The platform bundle ships an **Argo CD route** through the Kong Gateway
 (`platform/argocd/`), so once the platform is applied you reach the UI at
-`http://argocd.127-0-0-1.sslip.io` (with `minikube tunnel` running) — no port-forward.
-That route sets argocd-server to insecure (plain HTTP) mode, which needs a one-time
-restart the first time it's applied:
+`https://argocd.127-0-0-1.sslip.io` (with `minikube tunnel` running) — no port-forward.
+TLS is terminated at the gateway with the wildcard cert; it's self-signed, so accept
+the browser warning. The route sets argocd-server to insecure (plain HTTP) behind the
+gateway, which needs a one-time restart the first time it's applied:
 
 ```bash
 kubectl -n argocd rollout restart deployment/argocd-server
@@ -102,15 +103,29 @@ Wire the AsyncAPI renderer into the API entity page: in
 import). You do **not** need to hand-edit `app-config.yaml` for the catalog/GitHub
 settings — those come from the in-cluster ConfigMap and Secret below.
 
+Because the image runs with `NODE_ENV=production` and the app uses guest sign-in, make
+sure `packages/app/src/App.tsx` renders a guest `SignInPage` so the app can get an
+identity in production:
+
+```tsx
+import { SignInPage } from '@backstage/core-components';
+// in createApp({ components: { ... } }):
+SignInPage: props => <SignInPage {...props} auto providers={['guest']} />,
+```
+
+(The matching backend config — `auth.providers.guest.dangerouslyAllowOutsideDevelopment`
+— is already in `platform/backstage/app-config.configmap.yaml`.)
+
 ### 3b. Build and push the image
 
-`create-app` scaffolds `packages/backend/Dockerfile`. Build the backend bundle, then
-the image:
+`create-app` scaffolds `packages/backend/Dockerfile`. **Build the whole repo with
+`yarn build:all`, not just `build:backend`** — otherwise the frontend isn't bundled and
+you get a blank page (index.html/title load, but the JS bundle is missing):
 
 ```bash
 yarn install --immutable
 yarn tsc
-yarn build:backend
+yarn build:all      # builds BOTH the frontend app and the backend (frontend gets bundled)
 docker build . -f packages/backend/Dockerfile -t your-registry/backstage:latest
 docker push your-registry/backstage:latest
 ```
@@ -151,16 +166,19 @@ image built first).
 ### 3e. Access
 
 Backstage is exposed through the **same Kong Gateway** as the Kafka traffic, via the
-`web` HTTP listener on `kong-keg` and `platform/backstage/httproute.yaml` (both applied
-already by the steps above). With `minikube tunnel` running:
+`web` HTTPS listener on `kong-keg` and `platform/backstage/httproute.yaml` (both applied
+already by the steps above). TLS is terminated at the gateway with the wildcard cert —
+required, because Backstage needs a secure context (the Web Crypto API). With
+`minikube tunnel` running:
 
 ```bash
-# backstage.127-0-0-1.sslip.io resolves to 127.0.0.1 -> Kong :80 -> Backstage :7007
-open http://backstage.127-0-0-1.sslip.io
+# backstage.127-0-0-1.sslip.io -> 127.0.0.1 -> Kong :443 (TLS) -> Backstage :7007
+open https://backstage.127-0-0-1.sslip.io   # self-signed cert: accept the warning
 ```
 
-Prefer no Gateway? You can still port-forward directly and set both `app.baseUrl` and
-`backend.baseUrl` in the ConfigMap to `http://localhost:7007`:
+Prefer no Gateway/TLS? Port-forward and set both `app.baseUrl` and `backend.baseUrl`
+in the ConfigMap to `http://localhost:7007` — `localhost` also counts as a secure
+context, so the Web Crypto API works without HTTPS:
 
 ```bash
 kubectl -n backstage port-forward svc/backstage 7007:7007
@@ -169,6 +187,42 @@ kubectl -n backstage port-forward svc/backstage 7007:7007
 Both self-service templates and both AsyncAPI APIs load automatically from the
 catalog Location. If you'd rather register manually, use **Create → Register Existing
 Component** in the UI and paste your fork's `catalog-info.yaml` URL.
+
+### 3f. Troubleshooting a blank page (title only)
+
+`index.html` loaded (so you see the tab title) but the app didn't render. Open the
+browser dev tools and work through these in order:
+
+1. **Console shows `globalThis.crypto.randomUUID is not a function` (or `crypto.subtle`
+   is undefined).**
+   - The page isn't a **secure context**. Browsers only expose the Web Crypto API over
+     HTTPS or on `localhost`/`127.0.0.1`. Serving Backstage over plain `http://` on a
+     hostname like `backstage.127-0-0-1.sslip.io` breaks it. Fix: use the HTTPS gateway
+     route (`https://backstage.127-0-0-1.sslip.io`, the default here) or port-forward to
+     `http://localhost:7007`. This is the most common cause once assets load.
+2. **Network tab — are `static/*.js` requests 200 or 404?**
+   - 404 → the frontend wasn't bundled into the image. Rebuild with `yarn build:all`
+     (not just `yarn build:backend`) and redeploy.
+3. **Console — auth / identity errors, or a redirect to a broken sign-in?**
+   - The image runs `NODE_ENV=production`; the scaffolded **guest** sign-in is
+     dev-only unless allowed. This repo's ConfigMap now sets
+     `auth.providers.guest.dangerouslyAllowOutsideDevelopment: true`, and your
+     `packages/app/src/App.tsx` must render a guest `SignInPage` (see 3a). Rebuild the
+     image after adding the SignInPage.
+4. **The URL you open must match `app.baseUrl`/`backend.baseUrl`.**
+   - The config is set to `https://backstage.127-0-0-1.sslip.io`. If you instead
+     port-forward and open `http://localhost:7007`, the app fetches config/assets from
+     the wrong origin and renders blank. Either open the gateway URL (with
+     `minikube tunnel`) or set both base URLs to `http://localhost:7007` and redeploy.
+5. **Backend logs** — confirm both configs loaded and there are no startup errors:
+   ```bash
+   kubectl -n backstage logs deploy/backstage | head -50
+   # expect: "Loaded config from app-config.yaml, app-config.production.yaml"
+   ```
+
+After a config-only change: `kubectl apply -k platform/backstage/ &&
+kubectl -n backstage rollout restart deployment/backstage`. After an App.tsx or
+frontend change you must rebuild and repush the image.
 
 ## 4. Kong Operator & Strimzi (cluster-side platform)
 

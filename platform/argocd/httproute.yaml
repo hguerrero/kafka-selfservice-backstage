@@ -10,8 +10,8 @@
 # Requires argocd-server to serve plain HTTP (see argocd-cmd-params-cm.yaml), because
 # the gateway forwards HTTP; otherwise Argo CD's HTTPS redirect causes a loop.
 #
-# Access: with `minikube tunnel` running, http://argocd.127-0-0-1.sslip.io
-# resolves to 127.0.0.1 -> Kong :80 -> argocd-server :80.
+# Access: with `minikube tunnel` running, https://argocd.127-0-0-1.sslip.io
+# resolves to 127.0.0.1 -> Kong :443 (TLS terminated) -> argocd-server :80.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

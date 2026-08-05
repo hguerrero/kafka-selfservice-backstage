@@ -29,6 +29,12 @@ spec:
           # to a registry your cluster can pull from. See docs/prerequisites.md.
           image: your-registry/backstage:latest
           imagePullPolicy: IfNotPresent
+          # Set command explicitly so we always launch the backend entry, not `node`
+          # with our args. Some Backstage images use ENTRYPOINT ["node"], so passing
+          # only args yields `node --config ...` -> "node: bad option: --config".
+          # `node packages/backend` is the standard create-app backend entrypoint
+          # (WORKDIR is /app; adjust the path if your image differs).
+          command: ["node", "packages/backend"]
           args:
             - "--config"
             - "app-config.yaml"
