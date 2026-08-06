@@ -59,3 +59,24 @@ data:
           target: https://github.com/hguerrero/kafka-selfservice-backstage/blob/main/catalog-info.yaml
           rules:
             - allow: [API, System, Domain, Group, User, Location, Template]
+
+      # The self-service templates open PRs to the config repo; on merge, each app's
+      # apps/<app>/catalog-info.yaml should be discovered here. GitHub discovery scans
+      # the config repo for those files. Requires the GitHub catalog module in your
+      # backend image:
+      #   yarn --cwd packages/backend add @backstage/plugin-catalog-backend-module-github
+      # then it's auto-registered via the new backend system. Uncomment to enable:
+      providers:
+        github:
+          kafkaTenants:
+            organization: hguerrero
+            catalogPath: /apps/*/catalog-info.yaml
+            filters:
+              repository: kafka-selfservice-gitops
+              branch: main
+            schedule:
+              frequency: { minutes: 5 }
+              timeout: { minutes: 3 }
+      
+      # No discovery? After a PR merges, register the app once via the UI:
+      # Create -> Register Existing Component -> paste the app's catalog-info.yaml URL.

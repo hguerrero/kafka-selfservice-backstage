@@ -1,5 +1,7 @@
 ---
 # Backstage Component for the consuming application, wired to the AsyncAPI it uses.
+# The kong-event-gateway/* annotations feed the "Kafka Connection" card so app owners
+# can read their bootstrap server + auth details straight from the catalog.
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
@@ -7,6 +9,19 @@ metadata:
   description: ${{ values.description }}
   annotations:
     backstage.io/managed-by-location: url:./catalog-info.yaml
+    kong-event-gateway/bootstrap-server: "bootstrap.${{ values.appName }}.127-0-0-1.sslip.io:9092"
+    kong-event-gateway/security-protocol: "SASL_SSL"
+    kong-event-gateway/virtual-cluster: "${{ values.appName }}"
+    kong-event-gateway/namespace-prefix: "${{ values.namespacePrefix }}"
+    kong-event-gateway/topics: "${{ values.topics | join(',') }}"
+    {%- if values.authMode == "oauth" %}
+    kong-event-gateway/auth: "OAuth / OIDC (oauthBearer)"
+    kong-event-gateway/oauth-issuer: "https://<your-issuer>"
+    {%- else %}
+    kong-event-gateway/sasl-mechanism: "PLAIN"
+    kong-event-gateway/username: "${{ values.appName }}"
+    kong-event-gateway/password: "REPLACE_ME"
+    {%- endif %}
   labels:
     business-unit: ${{ values.businessUnit }}
     auth-mode: ${{ values.authMode }}
