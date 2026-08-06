@@ -187,6 +187,54 @@ spec:
           | Password | set to `REPLACE_ME` in the PR — replace before use |
           {%- endif %}
           | Topics | ${{ parameters.topics | join(", ") }} |
+      - title: Connect with kafkactl (copy/paste)
+        content: |
+          Save as `kafkactl.yml`, then `export KAFKA_CTL_CONFIG=$PWD/kafkactl.yml`.
+          {%- if parameters.authMode == "oauth" %}
+
+          This app uses OAuth — set `sasl.mechanism: oauth` and supply a bearer token
+          via your token provider (see the kafkactl OAuth docs); the block below shows
+          the connection/TLS parts.
+
+          ```yaml
+          contexts:
+            ${{ parameters.appName }}:
+              brokers:
+                - bootstrap.${{ parameters.appName }}.127-0-0-1.sslip.io:9092
+              tls:
+                enabled: true
+                insecure: true          # self-signed demo cert; false with a trusted CA
+              sasl:
+                enabled: true
+                mechanism: oauth
+                # tokenProvider / token: <supply your OIDC bearer token>
+          current-context: ${{ parameters.appName }}
+          ```
+          {%- else %}
+
+          ```yaml
+          contexts:
+            ${{ parameters.appName }}:
+              brokers:
+                - bootstrap.${{ parameters.appName }}.127-0-0-1.sslip.io:9092
+              tls:
+                enabled: true
+                insecure: true          # self-signed demo cert; false with a trusted CA
+              sasl:
+                enabled: true
+                mechanism: plaintext    # kafkactl's name for SASL/PLAIN
+                username: ${{ parameters.appName }}
+                password: REPLACE_ME    # use the password set on your virtual cluster
+          current-context: ${{ parameters.appName }}
+          ```
+          {%- endif %}
+
+          Then test (logical topic names — the broker prefix is hidden):
+
+          ```bash
+          kafkactl --context ${{ parameters.appName }} get topics
+          kafkactl --context ${{ parameters.appName }} consume ${{ parameters.topics[0] }}
+          ```
       - title: Heads up on the password
         content: |
           The password is a placeholder in the generated manifest. Best practice is to
