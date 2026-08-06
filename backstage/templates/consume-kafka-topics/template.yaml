@@ -164,3 +164,32 @@ spec:
     links:
       - title: Open the GitOps pull request
         url: ${{ steps.publish.output.remoteUrl }}
+    text:
+      - title: Next steps
+        content: |
+          Your request is a **pull request** — nothing is live yet. Once it's merged,
+          Argo CD applies it and Kong Operator provisions the virtual cluster, so give
+          it a minute after merge before connecting.
+
+          The durable copy of these details lives on your service's **Kafka Connection**
+          card in the catalog once the app is registered.
+      - title: Connection details (available after merge)
+        content: |
+          | Field | Value |
+          |-------|-------|
+          | Bootstrap server | `bootstrap.${{ parameters.appName }}.127-0-0-1.sslip.io:9092` |
+          | Security protocol | `SASL_SSL` |
+          {%- if parameters.authMode == "oauth" %}
+          | Authentication | OAuth / OIDC (oauthBearer) — present a bearer token |
+          {%- else %}
+          | SASL mechanism | `PLAIN` |
+          | Username | `${{ parameters.appName }}` |
+          | Password | set to `REPLACE_ME` in the PR — replace before use |
+          {%- endif %}
+          | Topics | ${{ parameters.topics | join(", ") }} |
+      - title: Heads up on the password
+        content: |
+          The password is a placeholder in the generated manifest. Best practice is to
+          treat credentials as show-once secrets: have the platform set a real value
+          (ideally a generated one) and store it sealed — don't rely on the catalog to
+          hold it long-term.

@@ -1,0 +1,48 @@
+# kafkactl configuration for testing the Kong Event Gateway virtual clusters.
+# Use instead of the kafka-*.sh scripts. Point kafkactl at this file with:
+#   export KAFKA_CTL_CONFIG=$(pwd)/kafkactl.yml
+# or copy it to ~/.config/kafkactl/config.yml
+#
+# Prereqs: platform up, the fraud-analytics tenant applied, `minikube tunnel` running,
+# and the SASL/PLAIN password below matching the virtual cluster principal in
+# apps/fraud-analytics/kong/virtual-cluster.yaml.
+#
+# Usage:
+#   kafkactl --context fraud-analytics get topics        # only the 2 granted topics
+#   kafkactl --context fraud-analytics consume clients.sentiment-signals.v1
+#   kafkactl config use-context fraud-analytics
+
+contexts:
+  # fraud-analytics app -> its virtual cluster via SNI. SASL/PLAIN over TLS; the
+  # gateway validates + terminates the credential (Kafka never sees it). The
+  # WEALTH_LA. prefix is hidden, so use the logical topic names.
+  fraud-analytics:
+    brokers:
+      - bootstrap.fraud-analytics.127-0-0-1.sslip.io:9092
+    tls:
+      enabled: true
+      insecure: true          # self-signed gateway cert; set false with a trusted CA
+    sasl:
+      enabled: true
+      mechanism: plaintext    # kafkactl's name for SASL/PLAIN
+      username: fraud-analytics
+      password: REPLACE_ME    # must match the virtual cluster principal
+    clientID: kafkactl-fraud-analytics
+    requestTimeout: 10s
+  
+  # Direct broker access -> bypasses the gateway, sees raw WEALTH_LA./RETAIL_NY. names.
+  # Requires: kubectl port-forward svc/northwind-kafka-bootstrap 19092:9092 -n kafka
+  kafka-direct:
+    brokers:
+      - localhost:19092
+    tls:
+      enabled: false
+    sasl:
+      enabled: false
+    clientID: kafkactl-admin
+    requestTimeout: 10s
+
+current-context: fraud-analytics
+
+defaultPartitions: 3
+defaultReplicationFactor: 3

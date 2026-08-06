@@ -69,14 +69,14 @@ data:
       providers:
         github:
           kafkaTenants:
-            organization: hguerrero
+            organization: <your-org>
             catalogPath: /apps/*/catalog-info.yaml
             filters:
               repository: kafka-selfservice-gitops
               branch: main
             schedule:
-              frequency: { minutes: 5 }
-              timeout: { minutes: 3 }
+              frequency: { minutes: 2 }
+              timeout: { minutes: 1 }
       
       # No discovery? After a PR merges, register the app once via the UI:
       # Create -> Register Existing Component -> paste the app's catalog-info.yaml URL.
