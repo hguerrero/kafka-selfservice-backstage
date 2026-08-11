@@ -12,7 +12,7 @@ Operator** on Kubernetes.
 
 > **Two repos.** This is the **portal/platform** repo (catalog, templates, platform
 > bootstrap). Tenant GitOps config lives in a companion repo,
-> [`kafka-selfservice-gitops`](https://github.com/your-org/kafka-selfservice-gitops):
+> [`kafka-selfservice-gitops`](https://github.com/hguerrero/kafka-selfservice-gitops):
 > the templates open PRs there and Argo CD watches it. See
 > [`docs/repositories.md`](docs/repositories.md).
 
